@@ -126,11 +126,30 @@ export async function getMentionName(userId: string): Promise<string> {
 
 export async function updateUser(userId: string, data: Record<string, any>): Promise<void> {
   const phone = extractNumberFromJid(userId);
-  await ensureUser(phone);
+  // PERF: previously called ensureUser(phone) here, which itself does
+  // getUser -> [insertOne|updateOne] -> getUser (2-3 sequential DB
+  // round trips just to guarantee the doc exists) before this function's
+  // OWN updateOne — 3-4 sequential round trips total for what should be
+  // one write. Verified via production logs (2026-07-18): .dig/.fish/.sell
+  // etc. were taking 9-18s for trivial logic, entirely explained by this
+  // plus the identical pattern below.
+  //
+  // Every real caller of updateUser already holds a fresh `user` doc from
+  // an earlier ensureUser()/getUser() call earlier in the same command
+  // (see economy.ts, gambling.ts, rpg.ts, etc.) — ensureUser's return
+  // value here was always discarded, so the extra reads bought nothing.
+  // upsert:true is the direct replacement for "ensure the doc exists,
+  // then set fields on it": if the doc is missing, Mongo creates it with
+  // just _id + the $set fields (no display_id/created_at backfill, which
+  // is the one behavior difference from ensureUser — acceptable because
+  // in every real call site the doc was already created by an earlier
+  // ensureUser() in the same command, so upsert-create here is a rare
+  // fallback, not the common path).
   if (Object.keys(data).length === 0) return;
   await col("users").updateOne(
     { _id: phone as any },
-    { $set: { ...data, updated_at: now() } }
+    { $set: { ...data, updated_at: now() } },
+    { upsert: true }
   );
 }
 

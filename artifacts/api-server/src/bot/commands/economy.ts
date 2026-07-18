@@ -872,14 +872,19 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
   }
 
   if (cmd === "stats") {
-    const inv = await getInventory(userId);
-    const rpg = await ensureRpg(userId);
+    // PERF: these 4 calls are independent (each only depends on userId,
+    // not on each other's results) but were previously awaited one at a
+    // time — 4 sequential DB round trips instead of 1 concurrent batch.
+    const [inv, rpg, rank, guild] = await Promise.all([
+      getInventory(userId),
+      ensureRpg(userId),
+      getUserRank(userId),
+      getUserGuild(userId),
+    ]);
     const level = Number(user.level || 1);
     const xp = Number(user.xp || 0);
     const xpNeeded = xpNeededForLevel(level);
     const total = Number(user.balance || 0) + Number(user.bank || 0);
-    const rank = await getUserRank(userId);
-    const guild = await getUserGuild(userId);
     await sendText(from,
       `╔ ❰ 📊 Sᴛᴀᴛs Pᴀɴᴇʟ ❱ ╗\n║  👤 ${mentionTag(sender)}\n║\n` +
       `╠═ ❰ Eᴄᴏɴᴏᴍʏ ❱\n║ 💰 Wᴀʟʟᴇᴛ: $${formatNumber(user.balance || 0)}\n║ 🏦 Bᴀɴᴋ: $${formatNumber(user.bank || 0)}\n║ 💸 Tᴏᴛᴀʟ: $${formatNumber(total)}\n║ 💎 Gᴇᴍs: ${formatNumber(user.gems || 0)}\n║\n` +

@@ -118,203 +118,205 @@ export async function handleMenu(ctx: CommandContext): Promise<void> {
 ❀━━━━━━━━━━━━━━❀
             📋 𝗠𝗔𝗜𝗡
 ❀━━━━━━━━━━━━━━❀
-➺ .menu — Full command list
-➺ .ping — Check bot status
-➺ .website — Web dashboard
-➺ .community — Join the community
-➺ .bots — Available bot instances
-➺ .afk [reason] — Away From Keyboard
-➺ .help / .info — Help & bot info
-➺ .uptime — Bot uptime
-➺ .modcmds — Staff command reference (staff only)
+➺ .menu
+➺ .ping
+➺ .website
+➺ .community
+➺ .bots
+➺ .afk
+➺ .help / .info
+➺ .uptime
 
 ❀━━━━━━━━━━━━━━❀
             ⚙️ 𝗔𝗗𝗠𝗜𝗡
 ❀━━━━━━━━━━━━━━❀
-➺ .kick @user — Remove a member
-➺ .delete / .del / .d — Delete message
-➺ .antilink set [action] — Link control
-➺ .warn @user [reason] — Warn member
-➺ .resetwarn @user — Clear warnings
-➺ .groupinfo / .gi — Group info
-➺ .welcome on/off — Toggle welcome message
-➺ .setwelcome / .setleave — Custom messages
-➺ .promote / .demote — Rank members
-➺ .mute / .unmute — Silence members
-➺ .hidetag / .tagall — Tag all members
-➺ .open / .close — Lock/unlock group
-➺ .purge [code] — Remove by country
-➺ .antism on/off — Block status mentions
-➺ .antibot on/off — Block bot accounts
-➺ .blacklist add/remove/list — Block numbers
-➺ .groupstats / .gs — Group stats
-➺ .activity — Activity score
-➺ .active / .inactive — Member status
-➺ .gclink / .gcl — Group link
-➺ .rules — View/set rules
-➺ .setmenuimg — Set menu image
+➺ .kick
+➺ .delete / .del / .d
+➺ .antilink set [action]
+➺ .warn @user [reason]
+➺ .resetwarn
+➺ .groupinfo / .gi
+➺ .welcome on/off
+➺ .setwelcome / .setleave
+➺ .promote / .demote
+➺ .mute / .unmute
+➺ .hidetag / .tagall
+➺ .open / .close
+➺ .purge [code]
+➺ .antism on/off
+➺ .antibot on/off
+➺ .blacklist add/remove/list
+➺ .groupstats / .gs
+➺ .activity
+➺ .active / .inactive
+➺ .gclink / .gcl
+➺ .rules
+➺ .setmenuimg
 
 ❀━━━━━━━━━━━━━━❀
-         💰 𝗘𝗖𝗢𝗡𝗢𝗠𝗬
+        💰 𝗘𝗖𝗢𝗡𝗢𝗠𝗬
 ❀━━━━━━━━━━━━━━❀
-➺ .bal / .balance — Check balance
-➺ .gems — Gems (card currency)
-➺ .premium / .membership — Premium info
-➺ .daily — Daily reward
-➺ .withdraw / .deposit [amt] — Move money
-➺ .donate [amount] — Donate coins
-➺ .richlist / .richlg — Top earners
-➺ .register / .reg — Link WhatsApp
-➺ .setname <name> — Custom name
-➺ .setpp / .setbg — Profile pic/banner
-➺ .profile / .p — View profile
-➺ .bio [text] — Set bio
-➺ .setage [age] — Set age
-➺ .inventory / .shop / .buy — Inventory
-➺ .leaderboard / .lb — Top players by level (earned via dungeon clears)
-➺ .work / .dig / .fish / .beg — Earn coins
-➺ .steal / .roast — Risky earnings
-➺ .stats / .cds — Cooldowns
-➺ .frame [id] — View frame
+➺ .bal / .balance
+➺ .gems
+➺ .premium / .membership
+➺ .daily
+➺ .withdraw / .deposit
+➺ .donate [amount]
+➺ .richlist / .richlg
+➺ .register / .reg
+➺ .setname <name>
+➺ .setpp / .setbg
+➺ .profile / .p
+➺ .bio [text] / .setage [age]
+➺ .inventory / .shop / .buy
+➺ .leaderboard / .lb
+➺ .work / .dig / .fish / .beg
+➺ .steal / .roast
+➺ .stats / .cds
+➺ .frame [id]
 
 ❀━━━━━━━━━━━━━━❀
            🎴 𝗖𝗔𝗥𝗗𝗦
 ❀━━━━━━━━━━━━━━❀
-➺ .collection / .coll — View collection
-➺ .deck / .sdi — View deck
-➺ .card [index] — View card
-➺ .cardinfo / .ci <name> — Card info
-➺ .sc <name> — Search cards
-➺ .si <name> — Search info
-➺ .ss <series> — Series cards
-➺ .slb <series> — Series leaderboard
-➺ .cs <series> — My series cards
-➺ .mycollectionseries — My series list
-➺ .tier — Cards by tier
-➺ .myseries — Cards by series
-➺ .fuse / .fusion / .forge — Fuse cards
-➺ .cardleaderboard / .cardlb — Top cards
-➺ .cardshop / .stardust — Card shop
-➺ .get [id] — Get card
-➺ .vs @user — Battle deck
-➺ .auction / .auctions — View auctions
-➺ .myauc — My auctions
-➺ .listauc [price] [hours] — List card
-➺ .bid [id] [amt] — Bid on card
-➺ .remauc <id> — Cancel auction
-➺ .cg @user — Challenge card
-➺ .ctd / .lcd / .retrieve — Retrieve cards
-➺ .sellc / .tc — Sell card
-➺ .accept / .decline — Accept/decline
+➺ .collection / .coll
+➺ .deck / .sdi
+➺ .card [index]
+➺ .cardinfo / .ci <name>
+➺ .sc <name>
+➺ .si <name>
+➺ .ss <series>
+➺ .slb <series>
+➺ .cs <series>
+➺ .mycollectionseries
+➺ .tier — Your cards grouped by tier
+➺ .myseries — Your cards grouped by series
+➺ .fuse / .fusion / .forge <tier> — Fuse duplicates into a higher tier
+➺ .cardleaderboard / .cardlb
+➺ .cardshop / .stardust
+➺ .get [id]
+➺ .vs @user
+➺ .auction / .auctions
+➺ .myauc / .listauc [index] [price] [h]
+➺ .bid [id] [amount]
+➺ .remauc <auction_id> — Cancel your own auction
+➺ .cg @user
+➺ .ctd / .lcd / .retrieve
+➺ .sellc / .tc
+➺ .accept / .decline
 
 ❀━━━━━━━━━━━━━━❀
-          ⚔️ 𝗥𝗣𝗚 & 𝗗𝗨𝗡𝗚𝗘𝗢𝗡
+         ⚔️ 𝗥𝗣𝗚
 ❀━━━━━━━━━━━━━━❀
-➺ .rpg — RPG stats
-➺ .rpgstats — Full breakdown
-➺ .class — Choose class
-➺ .adventure — Go adventure
-➺ .achievements / .achieve — Achievements
-➺ .explore — Explore areas
-➺ .rest — Recover health
-➺ .territory / .claim — Claim territory
-➺ .dungeon — Enter dungeon
-➺ .attack — Attack boss
-➺ .heavy — Heavy attack
-➺ .defend — Block damage
-➺ .flee — Escape dungeon
-➺ .quest — View quests
-➺ .raid — Raid boss
-➺ .boss — Challenge boss
-➺ .heal — Heal
-➺ .item — Use a potion/elixir in dungeon (2 uses per battle)
-➺ .mentor — Team up with a lower-level player for shared XP
+➺ .rpg — View your RPG stats
+➺ .rpgstats — Full stats breakdown
+➺ .class — Choose/view your class
+➺ .adventure — Go on an adventure
+➺ .achievements / .achieve
+➺ .explore — Explore new areas
+➺ .rest — Rest to recover
+➺ .territory / .claim — View, claim, or set tax on world territories
 
 ❀━━━━━━━━━━━━━━❀
-        🏰 𝗚𝗨𝗜𝗟𝗗𝗦
+       🏰 GUILD
 ❀━━━━━━━━━━━━━━❀
-➺ .guild create <name> — Create guild
-➺ .guild join <name> — Join guild
-➺ .guild leave — Leave guild
-➺ .guild info [name] — Guild info
-➺ .guild list — All guilds
-➺ .guild desc <text> — Set description
-➺ .guild kick @user — Remove member
-➺ .guild disband — Disband guild
+➺ .guild create <name> — Found a guild (Lv.20 + Guild Scroll required)
+➺ .guild join <name> — Join an existing guild
+➺ .guild leave — Leave your current guild
+➺ .guild info [name] — View a guild's details
+➺ .guild list — List all guilds
+➺ .guild desc <text> — Set your guild's description (owner only)
+➺ .guild kick @user — Remove a member (owner only)
+➺ .guild disband — Disband your guild (owner only)
+
+❀━━━━━━━━━━━━━━❀
+        🏰 𝗗𝗨𝗡𝗚𝗘𝗢𝗡
+❀━━━━━━━━━━━━━━❀
+➺ .dungeon — Enter a dungeon
+➺ .attack — Attack in a dungeon battle
+➺ .heavy — Heavy attack (slower, harder hit)
+➺ .defend — Defend, reducing incoming damage
+➺ .flee — Flee from a dungeon battle
+➺ .quest — View active quests
+➺ .raid — Raid an enemy boss
+➺ .boss — Challenge a boss
+➺ .heal — Heal your character
 
 ❀━━━━━━━━━━━━━━❀
            🤖 𝗔𝗜
 ❀━━━━━━━━━━━━━━❀
-➺ .ai / .gpt / .chat <text> — Chat with AI
-➺ .translate / .tt <text> — Translate
-➺ .mood — Echidna's mood
-➺ .mem — Echidna's memory
+➺ .ai / .gpt / .chat <text>
+➺ .translate / .tt <text>
+➺ .mood — Check Echidna's mood
 
 ❀━━━━━━━━━━━━━━❀
            🎮 𝗚𝗔𝗠𝗘𝗦
 ❀━━━━━━━━━━━━━━❀
-➺ .tictactoe / .ttt [@user] — Tic Tac Toe
-➺ .connectfour / .c4 [@user] — Connect Four
-➺ .wcg / .wordchain — Word Chain
-➺ .startbattle — Battle event
-➺ .truthordare / .td — Truth or Dare
-➺ .stopgame — End game
-➺ .uno / .startuno — UNO game
-➺ .unoplay / .unodraw — Play UNO
-➺ .unohand — View hand
+➺ .tictactoe / .ttt
+➺ .connectfour / .c4
+➺ .wcg / .wordchain
+➺ .startbattle
+➺ .truthordare / .td
+➺ .stopgame
+
+❀━━━━━━━━━━━━━━❀
+              🃏 𝗨𝗡𝗢
+❀━━━━━━━━━━━━━━❀
+➺ .uno / .startuno
+➺ .unoplay / .unodraw
+➺ .unohand
 
 ❀━━━━━━━━━━━━━━❀
             🎲 𝗚𝗔𝗠𝗕𝗟𝗘
 ❀━━━━━━━━━━━━━━❀
-➺ .slots / .dice / .casino — Slots
-➺ .coinflip / .cf — Coin flip
-➺ .doublebet / .doublepayout — Double bet
-➺ .roulette / .horse / .spin — Roulette
+➺ .slots / .dice / .casino
+➺ .coinflip / .cf
+➺ .doublebet / .doublepayout
+➺ .roulette / .horse / .spin
 
 ❀━━━━━━━━━━━━━━❀
            🎟️ 𝗟𝗢𝗧𝗧𝗘𝗥𝗬
 ❀━━━━━━━━━━━━━━❀
-➺ .lottery — Lottery info
-➺ .ll — Buy ticket
-➺ .lp — My tickets
-➺ .drawlottery — Draw lottery
+➺ .lottery — View lottery info
+➺ .ll — Buy a lottery ticket
+➺ .lp — Check your tickets
+➺ .drawlottery — Draw lottery (if eligible)
 
 ❀━━━━━━━━━━━━━━❀
     🌐 𝗪𝗘𝗕 / 𝗔𝗖𝗖𝗢𝗨𝗡𝗧
 ❀━━━━━━━━━━━━━━❀
-➺ .website — Dashboard
-➺ .reg — Link account
+➺ .website — Open the web dashboard
+➺ .reg <phone> — Register your account
 ➺ .verify <code> — Verify OTP
 
 ❀━━━━━━━━━━━━━━❀
-           🖼️ 𝗠𝗘𝗗𝗜𝗔
+          🖼️ 𝗠𝗘𝗗𝗜𝗔
 ❀━━━━━━━━━━━━━━❀
-➺ .sticker / .s — Make sticker
+➺ .sticker / .s — Convert to sticker
 ➺ .toimg / .turnimg — Sticker to image
-➺ .take — Screenshot
-➺ .pint <query> — Image search
+➺ .take — Take a screenshot
+➺ .pintimg — Save an image
 
 ❀━━━━━━━━━━━━━━❀
-           🎭 𝗙𝗨𝗡
+            🎭 𝗙𝗨𝗡
 ❀━━━━━━━━━━━━━━❀
-➺ .fancy <1-35> <text> — Fancy text
-➺ .gay / .lesbian / .simp — Meme text
-➺ .match / .ship / .relation — Compatibility
-➺ .character / .psize / .pp — Generator
-➺ .skill / .duality / .gen — Skills
-➺ .pov / .social — POV cards
-➺ .wouldyourather / .wyr — Questions
-➺ .joke — Tell joke
+➺ .fancy <1-35> <text>
+➺ .gay / .lesbian / .simp
+➺ .match / .ship / .relation
+➺ .character / .psize / .pp
+➺ .skill / .duality / .gen
+➺ .pov / .social
+➺ .wouldyourather / .wyr
+➺ .joke
 
 ❀━━━━━━━━━━━━━━❀
-       👤 𝗜𝗡𝗧𝗘𝗥𝗔𝗖𝗧𝗜𝗢𝗡
+      👤 𝗜𝗡𝗧𝗘𝗥𝗔𝗖𝗧𝗜𝗢𝗡
 ❀━━━━━━━━━━━━━━❀
-➺ .hug / .kiss / .slap — Hugs/Kiss/Slap
-➺ .wave / .pat / .dance — Actions
-➺ .sad / .smile / .laugh — Emotions
-➺ .punch / .kill / .hit — Combat
-➺ .kidnap / .lick / .bonk — Silly
-➺ .tickle / .shrug — Misc
+➺ .hug / .kiss / .slap
+➺ .wave / .pat / .dance
+➺ .sad / .smile / .laugh
+➺ .punch / .kill / .hit
+➺ .kidnap / .lick / .bonk
+➺ .tickle / .shrug
 
 ✨ ━━━━━━━━━━━━━━✨
 ♣️ The world is cruel, yet beautiful. 反逆

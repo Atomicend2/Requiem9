@@ -170,5 +170,6 @@ allowBuilds:
   baileys: true
   better-sqlite3: true
   esbuild: true
+  ffmpeg-static: set this to true or false
   protobufjs: true
   sharp: true
