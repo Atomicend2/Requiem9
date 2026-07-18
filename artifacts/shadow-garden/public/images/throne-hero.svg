@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <radialGradient id="haloGold" cx="50%" cy="28%" r="45%">
+      <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#A0001A" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#0A0A0F" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fadeDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A0F" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0A0A0F" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#haloGold)"/>
+
+  <!-- distant throne hall columns -->
+  <g fill="#15151D" opacity="0.9">
+    <rect x="60" y="120" width="60" height="780"/>
+    <rect x="230" y="60" width="70" height="840"/>
+    <rect x="430" y="20" width="80" height="880"/>
+    <rect x="1090" y="20" width="80" height="880"/>
+    <rect x="1300" y="60" width="70" height="840"/>
+    <rect x="1480" y="120" width="60" height="780"/>
+  </g>
+
+  <!-- gothic arches between columns -->
+  <g fill="none" stroke="#D4AF37" stroke-width="2" opacity="0.18">
+    <path d="M120,420 Q280,200 300,420"/>
+    <path d="M300,380 Q470,140 510,380"/>
+    <path d="M1090,380 Q1130,140 1300,380"/>
+    <path d="M1300,420 Q1320,200 1480,420"/>
+  </g>
+
+  <!-- central great arch behind throne -->
+  <path d="M520,900 L520,360 Q800,40 1080,360 L1080,900 Z" fill="#111117" opacity="0.95"/>
+  <path d="M520,900 L520,360 Q800,40 1080,360 L1080,900" fill="none" stroke="#D4AF37" stroke-width="3" opacity="0.35"/>
+  <path d="M580,900 L580,400 Q800,120 1020,400 L1020,900 Z" fill="#0A0A0F"/>
+
+  <!-- emblem disc above throne -->
+  <circle cx="800" cy="300" r="70" fill="none" stroke="#A0001A" stroke-width="3" opacity="0.45"/>
+  <circle cx="800" cy="300" r="50" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.4"/>
+  <line x1="730" y1="300" x2="870" y2="300" stroke="#D4AF37" stroke-width="1" opacity="0.3"/>
+  <line x1="800" y1="230" x2="800" y2="370" stroke="#D4AF37" stroke-width="1" opacity="0.3"/>
+
+  <!-- throne silhouette -->
+  <g fill="#15151D">
+    <rect x="740" y="640" width="120" height="220"/>
+    <path d="M720,640 L740,520 L860,520 L880,640 Z"/>
+    <rect x="700" y="820" width="200" height="40"/>
+  </g>
+  <g fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.3">
+    <path d="M720,640 L740,520 L860,520 L880,640"/>
+    <line x1="800" y1="520" x2="800" y2="640"/>
+  </g>
+
+  <!-- floor steps -->
+  <g fill="#111117">
+    <rect x="0" y="850" width="1600" height="50"/>
+    <rect x="100" y="800" width="1400" height="50"/>
+    <rect x="200" y="750" width="1200" height="50"/>
+  </g>
+  <g stroke="#D4AF37" stroke-width="1" opacity="0.1">
+    <line x1="0" y1="850" x2="1600" y2="850"/>
+    <line x1="100" y1="800" x2="1500" y2="800"/>
+    <line x1="200" y1="750" x2="1400" y2="750"/>
+  </g>
+
+  <!-- vignette fade to background -->
+  <rect width="1600" height="900" fill="url(#fadeDown)" opacity="0.85"/>
+</svg>

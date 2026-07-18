@@ -1,0 +1,1064 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Shadow Garden API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: OTP authentication
+  - name: user
+    description: User profile and stats
+  - name: shop
+    description: Shop and economy
+  - name: cards
+    description: Card collection system
+  - name: leaderboard
+    description: Rankings and leaderboards
+  - name: guilds
+    description: Guild system
+  - name: lottery
+    description: Lottery system
+  - name: community
+    description: Community stats
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /v1/auth/register:
+    post:
+      operationId: registerAccount
+      tags: [auth]
+      summary: Register a new account with phone, name and password (no OTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "200":
+          description: Registered and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Number already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with phone and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid phone or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Number not registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/otp/send:
+    post:
+      operationId: sendOtp
+      tags: [auth]
+      summary: Send a password-reset OTP via WhatsApp bot DM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOtpBody"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendOtpResponse"
+        "400":
+          description: Invalid phone number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not registered with the bot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/otp/verify:
+    post:
+      operationId: verifyOtp
+      tags: [auth]
+      summary: Verify a password-reset OTP code and set a new password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpBody"
+      responses:
+        "200":
+          description: Authenticated with new password set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/user/stats:
+    get:
+      operationId: getUserStats
+      tags: [user]
+      summary: Get current user full profile and stats
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/user/inventory:
+    get:
+      operationId: getUserInventory
+      tags: [user]
+      summary: Get current user inventory
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/user/achievements:
+    get:
+      operationId: getUserAchievements
+      tags: [user]
+      summary: Get current user achievements and badges
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/shop:
+    get:
+      operationId: getShopItems
+      tags: [shop]
+      summary: Get all shop items by category
+      responses:
+        "200":
+          description: Shop items grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopResponse"
+
+  /v1/shop/buy:
+    post:
+      operationId: buyShopItem
+      tags: [shop]
+      summary: Buy an item from the shop
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuyItemBody"
+      responses:
+        "200":
+          description: Purchase successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuyItemResponse"
+        "400":
+          description: Insufficient funds or invalid item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/cards:
+    get:
+      operationId: getAllCards
+      tags: [cards]
+      summary: Get all cards with optional filtering
+      parameters:
+        - in: query
+          name: tier
+          schema:
+            type: string
+        - in: query
+          name: series
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cards list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardsResponse"
+
+  /v1/cards/my:
+    get:
+      operationId: getMyCards
+      tags: [cards]
+      summary: Get authenticated user's card collection
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User's cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserCardsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/cards/wishlist:
+    post:
+      operationId: addCardToWishlist
+      tags: [cards]
+      summary: Notify card owner that you want to trade
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistBody"
+      responses:
+        "200":
+          description: Notification sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get global XP/level leaderboard
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  /v1/leaderboard/me:
+    get:
+      operationId: getMyRank
+      tags: [leaderboard]
+      summary: Get current user's rank position
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyRankResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/guilds:
+    get:
+      operationId: getGuilds
+      tags: [guilds]
+      summary: Get all guilds
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Guilds list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuildsResponse"
+
+  /v1/guilds/{guildId}:
+    get:
+      operationId: getGuild
+      tags: [guilds]
+      summary: Get a specific guild by ID
+      parameters:
+        - in: path
+          name: guildId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Guild details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuildDetails"
+        "404":
+          description: Guild not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/lottery:
+    get:
+      operationId: getLotteryState
+      tags: [lottery]
+      summary: Get current lottery state, entries, and recent winners
+      responses:
+        "200":
+          description: Lottery state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotteryResponse"
+
+  /v1/community/stats:
+    get:
+      operationId: getCommunityStats
+      tags: [community]
+      summary: Get community-wide stats (total members, active missions, etc.)
+      responses:
+        "200":
+          description: Community stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityStats"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    RegisterBody:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Phone number in international format, no plus sign (e.g. 2347012345678)
+        name:
+          type: string
+        password:
+          type: string
+          description: Plaintext password, min 6 characters. Hashed server-side.
+      required:
+        - phone
+        - name
+        - password
+
+    LoginBody:
+      type: object
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+      required:
+        - phone
+        - password
+
+    SendOtpBody:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Phone number in international format (e.g. +2347012345678)
+      required:
+        - phone
+
+    SendOtpResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    VerifyOtpBody:
+      type: object
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+        newPassword:
+          type: string
+          description: New password to set once the OTP is verified (password-reset flow).
+      required:
+        - phone
+        - code
+        - newPassword
+
+    AuthSession:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - success
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        level:
+          type: integer
+        xp:
+          type: integer
+        balance:
+          type: integer
+        bank:
+          type: integer
+        premium:
+          type: integer
+        bio:
+          type: string
+        registeredAt:
+          type: integer
+      required:
+        - id
+        - name
+        - level
+        - xp
+        - balance
+        - bank
+
+    UserStats:
+      type: object
+      properties:
+        profile:
+          $ref: "#/components/schemas/UserProfile"
+        rpg:
+          $ref: "#/components/schemas/RpgStats"
+        guild:
+          $ref: "#/components/schemas/GuildMembership"
+        rank:
+          type: integer
+        totalUsers:
+          type: integer
+        xpNeeded:
+          type: integer
+      required:
+        - profile
+        - rank
+        - totalUsers
+        - xpNeeded
+
+    RpgStats:
+      type: object
+      properties:
+        class:
+          type: string
+        hp:
+          type: integer
+        maxHp:
+          type: integer
+        attack:
+          type: integer
+        defense:
+          type: integer
+        speed:
+          type: integer
+        dungeonFloor:
+          type: integer
+      required:
+        - class
+        - hp
+        - maxHp
+        - attack
+        - defense
+        - speed
+        - dungeonFloor
+
+    GuildMembership:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        level:
+          type: integer
+      required:
+        - id
+        - name
+        - level
+
+    InventoryItem:
+      type: object
+      properties:
+        item:
+          type: string
+        quantity:
+          type: integer
+        category:
+          type: string
+      required:
+        - item
+        - quantity
+        - category
+
+    InventoryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryItem"
+      required:
+        - items
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        earnedAt:
+          type: integer
+      required:
+        - id
+        - name
+        - description
+        - icon
+        - earnedAt
+
+    AchievementsResponse:
+      type: object
+      properties:
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Achievement"
+      required:
+        - achievements
+
+    ShopItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+        effect:
+          type: string
+        category:
+          type: string
+      required:
+        - id
+        - name
+        - description
+        - price
+        - effect
+        - category
+
+    ShopResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              items:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopItem"
+            required:
+              - name
+              - items
+      required:
+        - categories
+
+    BuyItemBody:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        quantity:
+          type: integer
+          default: 1
+      required:
+        - itemId
+
+    BuyItemResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        newBalance:
+          type: integer
+      required:
+        - success
+        - message
+        - newBalance
+
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        series:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        isAnimated:
+          type: boolean
+        attack:
+          type: integer
+        defense:
+          type: integer
+        speed:
+          type: integer
+        totalCopies:
+          type: integer
+        ownerName:
+          type: string
+        ownerId:
+          type: string
+        owners:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+            required:
+              - id
+              - name
+      required:
+        - id
+        - name
+        - tier
+        - series
+        - attack
+        - defense
+        - speed
+        - totalCopies
+
+    CardsResponse:
+      type: object
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        total:
+          type: integer
+      required:
+        - cards
+        - total
+
+    UserCard:
+      type: object
+      properties:
+        userCardId:
+          type: integer
+        card:
+          $ref: "#/components/schemas/Card"
+        obtainedAt:
+          type: integer
+      required:
+        - userCardId
+        - card
+        - obtainedAt
+
+    UserCardsResponse:
+      type: object
+      properties:
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserCard"
+        total:
+          type: integer
+      required:
+        - cards
+        - total
+
+    WishlistBody:
+      type: object
+      properties:
+        cardId:
+          type: string
+      required:
+        - cardId
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        name:
+          type: string
+        level:
+          type: integer
+        xp:
+          type: integer
+        guildName:
+          type: string
+          nullable: true
+      required:
+        - rank
+        - userId
+        - name
+        - level
+        - xp
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+      required:
+        - entries
+
+    MyRankResponse:
+      type: object
+      properties:
+        rank:
+          type: integer
+        total:
+          type: integer
+        entry:
+          $ref: "#/components/schemas/LeaderboardEntry"
+      required:
+        - rank
+        - total
+        - entry
+
+    Guild:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        level:
+          type: integer
+        memberCount:
+          type: integer
+        ownerName:
+          type: string
+        createdAt:
+          type: integer
+      required:
+        - id
+        - name
+        - level
+        - memberCount
+        - ownerName
+
+    GuildsResponse:
+      type: object
+      properties:
+        guilds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Guild"
+      required:
+        - guilds
+
+    GuildDetails:
+      type: object
+      properties:
+        guild:
+          $ref: "#/components/schemas/Guild"
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              name:
+                type: string
+              level:
+                type: integer
+              joinedAt:
+                type: integer
+            required:
+              - userId
+              - name
+              - level
+              - joinedAt
+      required:
+        - guild
+        - members
+
+    LotteryEntry:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        enteredAt:
+          type: integer
+      required:
+        - userId
+        - name
+        - enteredAt
+
+    LotteryWinner:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        prize:
+          type: integer
+        wonAt:
+          type: integer
+      required:
+        - userId
+        - name
+        - prize
+        - wonAt
+
+    LotteryResponse:
+      type: object
+      properties:
+        active:
+          type: boolean
+        pool:
+          type: integer
+        entryCount:
+          type: integer
+        maxEntries:
+          type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotteryEntry"
+        recentWinners:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotteryWinner"
+      required:
+        - active
+        - pool
+        - entryCount
+        - maxEntries
+        - entries
+        - recentWinners
+
+    CommunityStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+        totalBots:
+          type: integer
+        activeMissions:
+          type: integer
+        totalCards:
+          type: integer
+        totalGuilds:
+          type: integer
+        totalTransactions:
+          type: integer
+      required:
+        - totalMembers
+        - totalBots
+        - activeMissions
+        - totalCards
+        - totalGuilds
+        - totalTransactions

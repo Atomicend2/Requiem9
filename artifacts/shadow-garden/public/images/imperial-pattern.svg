@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <pattern id="chess" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="32" height="32" x="0" y="0" fill="#D4AF37" opacity="0.05"/>
+      <rect width="32" height="32" x="32" y="32" fill="#D4AF37" opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <!-- corner chessboard fields -->
+  <rect x="0" y="0" width="420" height="420" fill="url(#chess)"/>
+  <rect x="1180" y="580" width="420" height="420" fill="url(#chess)"/>
+
+  <!-- central geass-inspired sigil: concentric rings + radiating spokes -->
+  <g transform="translate(800,500)" fill="none" stroke="#A0001A" stroke-width="1">
+    <circle r="340" opacity="0.06"/>
+    <circle r="270" opacity="0.07"/>
+    <circle r="200" opacity="0.08" stroke="#D4AF37"/>
+    <circle r="130" opacity="0.06"/>
+    <circle r="60" opacity="0.07" stroke="#D4AF37"/>
+    <g opacity="0.05">
+      <line x1="-340" y1="0" x2="340" y2="0"/>
+      <line x1="0" y1="-340" x2="0" y2="340"/>
+      <line x1="-240" y1="-240" x2="240" y2="240"/>
+      <line x1="-240" y1="240" x2="240" y2="-240"/>
+    </g>
+    <g opacity="0.05" stroke="#D4AF37">
+      <path d="M0,-340 L20,-300 L-20,-300 Z"/>
+      <path d="M0,340 L20,300 L-20,300 Z"/>
+      <path d="M-340,0 L-300,20 L-300,-20 Z"/>
+      <path d="M340,0 L300,20 L300,-20 Z"/>
+    </g>
+  </g>
+
+  <!-- gothic spire silhouettes along the base -->
+  <g fill="#0A0A0F" opacity="0.55">
+    <path d="M0,1000 L0,760 L40,700 L80,760 L80,1000 Z"/>
+    <path d="M110,1000 L110,640 L160,560 L210,640 L210,1000 Z"/>
+    <path d="M230,1000 L230,720 L270,660 L310,720 L310,1000 Z"/>
+    <path d="M1290,1000 L1290,700 L1330,640 L1370,700 L1370,1000 Z"/>
+    <path d="M1390,1000 L1390,600 L1450,500 L1510,600 L1510,1000 Z"/>
+    <path d="M1530,1000 L1530,740 L1565,690 L1600,740 L1600,1000 Z"/>
+  </g>
+  <g stroke="#D4AF37" stroke-width="1" fill="none" opacity="0.07">
+    <path d="M0,760 L40,700 L80,760"/>
+    <path d="M110,640 L160,560 L210,640"/>
+    <path d="M230,720 L270,660 L310,720"/>
+    <path d="M1290,700 L1330,640 L1370,700"/>
+    <path d="M1390,600 L1450,500 L1510,600"/>
+    <path d="M1530,740 L1565,690 L1600,740"/>
+  </g>
+
+  <!-- thin gold accent lines -->
+  <line x1="0" y1="2" x2="1600" y2="2" stroke="#D4AF37" stroke-width="1" opacity="0.06"/>
+  <line x1="0" y1="998" x2="1600" y2="998" stroke="#D4AF37" stroke-width="1" opacity="0.06"/>
+  <line x1="80" y1="0" x2="480" y2="1000" stroke="#D4AF37" stroke-width="0.5" opacity="0.03"/>
+  <line x1="1520" y1="0" x2="1120" y2="1000" stroke="#D4AF37" stroke-width="0.5" opacity="0.03"/>
+</svg>

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A0A0F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#15151D;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A0001A;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#A0001A;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:0.8" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="248" fill="url(#skyGrad)" stroke="url(#glowGrad)" stroke-width="2.5"/>
+
+  <!-- Subtle inner ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="url(#accentGrad)" stroke-width="0.8" opacity="0.3"/>
+
+  <!-- Requiem Order kanji 反逆 — centered, large, glowing -->
+  <!-- 天 (heaven) top half -->
+  <text
+    x="256"
+    y="230"
+    font-family="serif"
+    font-size="130"
+    font-weight="bold"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    fill="url(#glowGrad)"
+    filter="url(#glow)"
+    letter-spacing="8"
+  >反逆</text>
+
+  <!-- Decorative line below kanji -->
+  <line x1="120" y1="300" x2="392" y2="300" stroke="url(#accentGrad)" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Romanized name below -->
+  <text
+    x="256"
+    y="348"
+    font-family="serif"
+    font-size="34"
+    font-weight="400"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    fill="#D4AF37"
+    letter-spacing="14"
+  >REQUIEM ORDER</text>
+
+  <!-- Small star decorations -->
+  <circle cx="100" cy="300" r="2.5" fill="#A0001A" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="412" cy="300" r="2.5" fill="#D4AF37" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="256" cy="130" r="2" fill="#D4AF37" opacity="0.5"/>
+  <circle cx="180" cy="155" r="1.5" fill="#A0001A" opacity="0.4"/>
+  <circle cx="332" cy="155" r="1.5" fill="#D4AF37" opacity="0.4"/>
+
+  <!-- Top arc accent -->
+  <path d="M 160 110 Q 256 80 352 110" stroke="url(#accentGrad)" stroke-width="1.2" fill="none" opacity="0.4"/>
+</svg>

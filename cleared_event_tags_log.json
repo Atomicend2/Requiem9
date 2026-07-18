@@ -1,0 +1,497 @@
+[
+  {
+    "name": "Yoshiki",
+    "series": "The Summer Hikaru Died",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hikaru",
+    "series": "The Summer Hikaru Died",
+    "event_name": "summer"
+  },
+  {
+    "name": "Faye Valentine",
+    "series": "Cowboy Bebop",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Hairi Takahara",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Shiroha Naruse",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Umi Katou",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tsumugi Wenders",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Kamome Kushima",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ao Sorakado",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Faye Valentine",
+    "series": "Cowboy Bebop",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Mai Valentine",
+    "series": "Yu-Gi-Oh!",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Spike & Faye",
+    "series": "Cowboy Bebop",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Hairi & Shiroha",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hairi, Inari & Ao",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ao Sorakado",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Kamome Kushima",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tsumugi Wenders",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Mai Valentine",
+    "series": "Yu-Gi-Oh!",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Hairi, Umi and Shiroha",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hairi & Kamome",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hairi & Tsumugi",
+    "series": "Summer Pockets",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hikaru",
+    "series": "The Summer Hikaru Died",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hizuru Minakata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Mio Kofune",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Shiori Kobayakawa",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ushio Kofune",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Yoshiki",
+    "series": "The Summer Hikaru Died",
+    "event_name": "summer"
+  },
+  {
+    "name": "Shinpei, Ushio & Mio",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Shinpei Ajiro",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Jill Valentine",
+    "series": "Biohazard",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Construction Specialist Mek",
+    "series": "Genshin Impact",
+    "event_name": "special event"
+  },
+  {
+    "name": "Hajime Shino",
+    "series": "Ensemble Stars!",
+    "event_name": "festival"
+  },
+  {
+    "name": "Shiho Hinomori",
+    "series": "Project Sekai",
+    "event_name": "special event"
+  },
+  {
+    "name": "Honoka Mitsui",
+    "series": "The Irregular at Magic High School",
+    "event_name": "winter"
+  },
+  {
+    "name": "Fuyuko Mayuzumi",
+    "series": "The Idolm@ster",
+    "event_name": "spring"
+  },
+  {
+    "name": "Special Week",
+    "series": "Uma Musume: Pretty Derby",
+    "event_name": "special event"
+  },
+  {
+    "name": "Springer",
+    "series": "Transformers",
+    "event_name": "spring"
+  },
+  {
+    "name": "Maria Mikhailovna Kujou",
+    "series": "Roshidere",
+    "event_name": "holiday"
+  },
+  {
+    "name": "Springer",
+    "series": "Transformers",
+    "event_name": "spring"
+  },
+  {
+    "name": "Kanon Matsubara",
+    "series": "BanG Dream!",
+    "event_name": "birthday"
+  },
+  {
+    "name": "Akane and Kana",
+    "series": "Oshi no Ko",
+    "event_name": "summer"
+  },
+  {
+    "name": "Special Week",
+    "series": "Uma Musume: Pretty Derby",
+    "event_name": "special event"
+  },
+  {
+    "name": "Shinpei Ajiro",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Winter Moriarty",
+    "series": "Ron Kamonohashi: Deranged Detective",
+    "event_name": "winter"
+  },
+  {
+    "name": "Mio Kitahara",
+    "series": "Waiting in the Summer",
+    "event_name": "summer"
+  },
+  {
+    "name": "Remon Yamano",
+    "series": "Waiting in the Summer",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ichika Takatsuki",
+    "series": "Waiting in the Summer",
+    "event_name": "summer"
+  },
+  {
+    "name": "Hakari Hanazono",
+    "series": "Hyakkano",
+    "event_name": "spring"
+  },
+  {
+    "name": "Faye Valentine",
+    "series": "Cowboy Bebop",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Runa Shirakawa",
+    "series": "Kimizero",
+    "event_name": "spring"
+  },
+  {
+    "name": "Springfield",
+    "series": "Senjuushi",
+    "event_name": "spring"
+  },
+  {
+    "name": "Desir Arman",
+    "series": "A Returner's Magic Should Be Special",
+    "event_name": "special event"
+  },
+  {
+    "name": "Azest Kingscrown",
+    "series": "A Returner's Magic Should Be Special",
+    "event_name": "special event"
+  },
+  {
+    "name": "Pram Schneider",
+    "series": "A Returner's Magic Should Be Special",
+    "event_name": "special event"
+  },
+  {
+    "name": "Special Week",
+    "series": "Uma Musume: Pretty Derby",
+    "event_name": "special event"
+  },
+  {
+    "name": "Nahida",
+    "series": "Genshin Impact",
+    "event_name": "festival"
+  },
+  {
+    "name": "Romantica Eru",
+    "series": "A Returner's Magic Should Be Special",
+    "event_name": "special event"
+  },
+  {
+    "name": "Jill Valentine",
+    "series": "Biohazard",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Desir Arman",
+    "series": "A Returner's Magic Should Be Special",
+    "event_name": "special event"
+  },
+  {
+    "name": "Jill Valentine",
+    "series": "Biohazard",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Yuuko Kanoe",
+    "series": "Dusk Maiden of Amnesia",
+    "event_name": "winter"
+  },
+  {
+    "name": "Tsukushi Futaba",
+    "series": "BanG Dream!",
+    "event_name": "birthday"
+  },
+  {
+    "name": "The Survivors",
+    "series": "Ningen Fushin",
+    "event_name": "festival"
+  },
+  {
+    "name": "Manjiro Sano",
+    "series": "Tokyo Revengers",
+    "event_name": "winter"
+  },
+  {
+    "name": "Natsuki Shinohara",
+    "series": "Summer Wars",
+    "event_name": "summer"
+  },
+  {
+    "name": "Kei Karuizawa",
+    "series": "Classroom of the Elite",
+    "event_name": "festival"
+  },
+  {
+    "name": "Sou and Mio",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ushio and Mio",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Mio Kofune",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Mai Valentine",
+    "series": "Yu-Gi-Oh!",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Hizuru Minakata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Lum and Ataru",
+    "series": "Urusei Yatsura",
+    "event_name": "gala"
+  },
+  {
+    "name": "Chitose Hishigata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Touko Kirigaya",
+    "series": "BanG Dream!",
+    "event_name": "birthday"
+  },
+  {
+    "name": "Seidou Hishigata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Alan Kofune",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tetsu Totsumura",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ginjirou Nezu",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Asako Kobayakawa",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ryuunosuke Minakata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Sou Hishigata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tokiko Hishigata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Shiori Kobayakawa",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Specialman",
+    "series": "Kinnikuman",
+    "event_name": "special event"
+  },
+  {
+    "name": "Tomoya, Ryou and Aoi",
+    "series": "Summer Ghost",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ryunosuke Minakata",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Winter",
+    "series": "Muteking the Dancing Hero",
+    "event_name": "winter"
+  },
+  {
+    "name": "Summer",
+    "series": "Muteking the Dancing Hero",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tetsu Totsumura",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Luminous Valentine",
+    "series": "Tensei shitara Slime Datta Ken",
+    "event_name": "valentines"
+  },
+  {
+    "name": "Heine",
+    "series": "Summertime Render",
+    "event_name": "summer"
+  },
+  {
+    "name": "Sights of Summer",
+    "series": "High School DxD",
+    "event_name": "summer"
+  },
+  {
+    "name": "Raphtalia",
+    "series": "The Rising of the Shield Hero",
+    "event_name": "summer"
+  },
+  {
+    "name": "Tomoya & Ayane",
+    "series": "Summer Ghost",
+    "event_name": "summer"
+  },
+  {
+    "name": "Ayane Satou",
+    "series": "Summer Ghost",
+    "event_name": "summer"
+  },
+  {
+    "name": "Girls Spa Day",
+    "series": "Mushoku Tensei",
+    "event_name": "spring"
+  },
+  {
+    "name": "Summer Girls",
+    "series": "Kanojo Okarishimasu",
+    "event_name": "summer"
+  },
+  {
+    "name": "Yuigahama Yui",
+    "series": "My Teen Romantic Comedy SNAFU",
+    "event_name": "summer"
+  },
+  {
+    "name": "Kanna Kamui",
+    "series": "Miss Kobayashi's Dragon Maid",
+    "event_name": "spring"
+  }
+]

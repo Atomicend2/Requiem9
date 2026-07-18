@@ -1,0 +1,73 @@
+services:
+  - type: web
+    name: requiem-order
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: >-
+      (apt-get update -qq && apt-get install -y -qq fonts-noto-core fonts-noto-color-emoji fonts-noto-extra && fc-cache -f || echo "Noto fonts install skipped — Unicode chars may render as boxes") &&
+      pnpm install &&
+      node merge_cards.js &&
+      PLAYWRIGHT_BROWSERS_PATH=/opt/render/project/.playwright pnpm exec playwright install chromium --with-deps &&
+      mkdir -p artifacts/api-server/bin &&
+      (curl -sL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o artifacts/api-server/bin/yt-dlp && chmod +x artifacts/api-server/bin/yt-dlp || echo "yt-dlp download failed at build time — will attempt self-heal download on first .play use") &&
+      (curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/opt/render/project/.deno sh -s -- --no-modify-path && ln -sf /opt/render/project/.deno/bin/deno artifacts/api-server/bin/deno || echo "deno install failed at build time — yt-dlp will fall back to degraded/no-JS-runtime YouTube extraction") &&
+      cd artifacts/shadow-garden && pnpm exec vite build --config vite.config.ts && cd ../.. &&
+      node artifacts/api-server/build.mjs
+    startCommand: PATH="$PATH:$PWD/artifacts/api-server/bin" PLAYWRIGHT_BROWSERS_PATH=/opt/render/project/.playwright node --enable-source-maps artifacts/api-server/dist/index.mjs
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NODE_OPTIONS
+        # This instance has 512 MB total physical RAM. ffmpeg (used to
+        # transcode animated cards to MP4 for WhatsApp) runs as a SEPARATE
+        # OS process — it does NOT share or respect Node's V8 heap limit,
+        # so it competes directly with Node for the same physical memory.
+        # 460 MB left almost no headroom for it, and a single ffmpeg
+        # transcode could easily need 100+ MB even with the memory-capping
+        # flags now applied (-threads 1, reduced x264 lookahead/buffers,
+        # 640px resolution cap) — the combined total was exceeding 512 MB
+        # and getting the whole container OOM-killed by the OS, which is
+        # different from (and wasn't fixed by) V8 hitting its own
+        # configured --max-old-space-size ceiling. 300 MB leaves ffmpeg,
+        # the Mongo driver, and OS overhead comfortable room within the
+        # real 512 MB ceiling.
+        value: "--max-old-space-size=300"
+      - key: VIPS_CONCURRENCY
+        # Belt-and-suspenders alongside sharp.concurrency(1) in index.ts —
+        # libvips (which sharp wraps) is documented to fragment memory
+        # under sustained small-image workloads on glibc-based Linux
+        # (exactly this container) when it uses its default one-thread-
+        # per-CPU-core behavior. Forcing single-threaded operation via the
+        # env var too ensures this holds even for any code path that might
+        # somehow run before index.ts's sharp.concurrency(1) call executes.
+        value: "1"
+      - key: VIPS_DISC_THRESHOLD
+        # Card images are always small (well under this), but setting it
+        # explicitly avoids relying on libvips' 100MB default in case a
+        # malformed/oversized image ever slips past the 20MB cap already
+        # enforced in code before reaching sharp.
+        value: "20m"
+      - key: BOT_PHONE_NUMBER
+        sync: false
+      - key: BOT_OWNER_PHONE
+        sync: false
+      - key: OWNER_NUMBERS
+        sync: false
+      - key: BOT_OWNER_LID
+        sync: false
+      - key: WEBSITE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DATA_DIR
+        value: /data

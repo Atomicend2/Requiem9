@@ -1,0 +1,18 @@
+# Build output — regenerated on every deploy (see build.mjs / vite build).
+# Committing this bloats the repo and risks shipping stale code if the
+# build step is ever skipped.
+artifacts/api-server/dist/
+artifacts/shadow-garden/dist/
+
+# Replit's file-upload cache — screenshots, log dumps, reference zips
+# dragged into chat. None of this is source code; it should never be
+# committed. (If Replit Agent needs an uploaded file for a task, it should
+# read it from here transiently, not check it into the repo.)
+attached_assets/
+
+# Standard Node / editor noise
+node_modules/
+*.log
+.DS_Store
+.env
+.env.local
