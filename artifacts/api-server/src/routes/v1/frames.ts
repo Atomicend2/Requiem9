@@ -26,8 +26,14 @@ async function isStaff(req: AuthRequest): Promise<boolean> {
   const phone = (req.user?.phone || "").replace(/\D/g, "");
   if (phone === BOT_OWNER) return true;
   const userId = req.user?.id || "";
-  const row = await col("staff").findOne({ user_id: userId });
-  return !!row;
+  try {
+    // PERF/FIX: maxTimeMS bound — see admin.ts isStaff() for why (avoids
+    // an unbounded hang on a mid-reconnect Mongo socket after cold-start).
+    const row = await col("staff").findOne({ user_id: userId }, { maxTimeMS: 5000 });
+    return !!row;
+  } catch {
+    return false;
+  }
 }
 
 router.get("/", async (_req, res) => {

@@ -60,11 +60,39 @@ sharp.concurrency(1);
 //  We can't fix this at the source (it's inside the dependency, and this
 //  environment has no network access to patch/upgrade the package), so we
 //  intercept at the console level instead — narrowly, by matching only
-//  this literal message prefix, so no other legitimate console.log/trace
-//  output anywhere else in the app or any other dependency is affected.
-const originalConsoleLog = console.log.bind(console);
+//  known literal message prefixes, so no other legitimate console output
+//  anywhere else in the app or any other dependency is affected.
+//
+//  CORRECTED (2026-07-19): the previous version of this fix intercepted
+//  console.log/console.trace with the prefixes "Closing session:" /
+//  "Closing sessions for" and suppressed nothing in production — verified
+//  by reading the actual installed dependency source
+//  (node_modules/libsignal@6.0.0/src/session_record.js), which calls
+//  console.info (not console.log/trace) with messages including
+//  "Removing old closed session:", "Closing session:", "Opening session:",
+//  and via console.warn: "Session already closed", "Session already open",
+//  "Decrypted message with closed session." — several of these dump a
+//  full SessionEntry (nested chain keys, root keys, ephemeral key Buffers)
+//  on every session rotation. This is what actually produced the
+//  dozens-of-lines-per-reconnect flood seen in production logs, and the
+//  synchronous JSON-like stringification of those Buffers is real,
+//  measurable CPU time stolen from the same event loop that serves every
+//  WhatsApp command and web API request — worst right after a Render
+//  cold-start, when many sessions rotate back-to-back while requests are
+//  also arriving.
+const originalConsoleLog   = console.log.bind(console);
+const originalConsoleInfo  = console.info.bind(console);
+const originalConsoleWarn  = console.warn.bind(console);
 const originalConsoleTrace = console.trace.bind(console);
-const SUPPRESSED_LOG_PREFIXES = ["Closing session:", "Closing sessions for"];
+const SUPPRESSED_LOG_PREFIXES = [
+  "Closing session:",
+  "Closing sessions for",
+  "Removing old closed session:",
+  "Opening session:",
+  "Session already closed",
+  "Session already open",
+  "Decrypted message with closed session.",
+];
 function isSuppressedLog(args: unknown[]): boolean {
   const first = args[0];
   return typeof first === "string" && SUPPRESSED_LOG_PREFIXES.some((p) => first.startsWith(p));
@@ -72,6 +100,14 @@ function isSuppressedLog(args: unknown[]): boolean {
 console.log = (...args: unknown[]) => {
   if (isSuppressedLog(args)) return;
   originalConsoleLog(...args);
+};
+console.info = (...args: unknown[]) => {
+  if (isSuppressedLog(args)) return;
+  originalConsoleInfo(...args);
+};
+console.warn = (...args: unknown[]) => {
+  if (isSuppressedLog(args)) return;
+  originalConsoleWarn(...args);
 };
 console.trace = (...args: unknown[]) => {
   if (isSuppressedLog(args)) return;

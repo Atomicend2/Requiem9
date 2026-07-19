@@ -14,9 +14,19 @@ async function findUserById(userId: string): Promise<any> {
   // request loaded up to ~500 KB of image data unnecessarily, causing
   // MongoDB to scan large documents on the phone/lid fields (unindexed)
   // and making all profile endpoints take 15+ seconds.
+  //
+  // PERF/FIX (2026-07-19): added maxTimeMS. This function runs on EVERY
+  // authenticated request (it's the core of requireAuth, used by nearly
+  // every route in the app) with no bound at all — the single highest-
+  // blast-radius version of the same unbounded-Mongo-call bug found in
+  // admin.ts's isStaff/isAdminToken, which was the actual cause of the
+  // 25s admin/stats timeout (requireAdminAccess calls through here).
   const doc = await col("users").findOne(
     { $or: [{ _id: userId as any }, { phone: userId }, { lid: userId }] },
-    { projection: { profile_picture: 0, profile_background: 0, profile_picture_video: 0, profile_background_video: 0 } }
+    {
+      projection: { profile_picture: 0, profile_background: 0, profile_picture_video: 0, profile_background_video: 0 },
+      maxTimeMS: 5000,
+    }
   );
   return doc ? { ...doc, id: doc._id } : null;
 }
@@ -35,7 +45,10 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     if (!session) {
       // Legacy DB session fallback
       const now = Math.floor(Date.now() / 1000);
-      const dbSession = await col("web_sessions").findOne({ _id: token as any, expires_at: { $gt: now } });
+      const dbSession = await col("web_sessions").findOne(
+        { _id: token as any, expires_at: { $gt: now } },
+        { maxTimeMS: 5000 }
+      );
       if (!dbSession) {
         res.status(401).json({ success: false, message: "Invalid or expired session" });
         return;
@@ -70,7 +83,10 @@ export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunctio
       if (user) { req.userId = user.id; req.user = user; }
     } else {
       const now = Math.floor(Date.now() / 1000);
-      const dbSession = await col("web_sessions").findOne({ _id: token as any, expires_at: { $gt: now } });
+      const dbSession = await col("web_sessions").findOne(
+        { _id: token as any, expires_at: { $gt: now } },
+        { maxTimeMS: 5000 }
+      );
       if (dbSession) {
         const user = await findUserById(dbSession.user_id);
         if (user) { req.userId = user.id; req.user = user; }

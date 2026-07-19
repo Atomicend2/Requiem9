@@ -52,8 +52,18 @@ function isOwner(req: AuthRequest): boolean {
 async function isStaff(req: AuthRequest): Promise<boolean> {
   if (isOwner(req)) return true;
   const userId = req.user?.id || "";
-  const row = await col("staff").findOne({ user_id: userId });
-  return !!row;
+  try {
+    // PERF/FIX: maxTimeMS bounds this to fail fast if Mongo is mid-reconnect
+    // (e.g. right after a Render cold-start) instead of hanging indefinitely —
+    // previously this had no bound at all, and a slow/reconnecting socket
+    // here is what actually produced the 25s admin/stats timeout in
+    // production (requireAdminAccess calls this BEFORE the route handler's
+    // own try/catch or maxTimeMS-guarded queries even run).
+    const row = await col("staff").findOne({ user_id: userId }, { maxTimeMS: 5000 });
+    return !!row;
+  } catch {
+    return false;
+  }
 }
 
 // In-memory token cache — acts as a fallback if MongoDB is temporarily unavailable
@@ -68,7 +78,14 @@ async function isAdminToken(token: string): Promise<boolean> {
   if (memExpiry !== undefined && memExpiry > now) return true;
   // Fall back to MongoDB (also refreshes the in-memory cache)
   try {
-    const row = await col("admin_sessions").findOne({ _id: token as any, expires_at: { $gt: now } });
+    // PERF/FIX: maxTimeMS added — see isStaff() above for why. This is the
+    // first DB call requireAdminAccess makes on every uncached admin
+    // request, so an unbounded hang here blocks the entire request before
+    // it even reaches the route handler's own maxTimeMS-guarded queries.
+    const row = await col("admin_sessions").findOne(
+      { _id: token as any, expires_at: { $gt: now } },
+      { maxTimeMS: 5000 }
+    );
     if (row) {
       memTokenCache.set(token, row.expires_at as number);
       return true;
