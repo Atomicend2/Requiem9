@@ -10,6 +10,7 @@ import {
 } from "@whiskeysockets/baileys";
 import { useMongoAuthState } from "./db/mongo-auth.js";
 import { col } from "./db/mongo.js";
+import { mark } from "./cmd-trace.js";
 import { Boom } from "@hapi/boom";
 import path from "path";
 import fs from "fs";
@@ -544,7 +545,9 @@ export async function sendText(jid: string, text: string, mentions?: string[]) {
   const autoMentions = [...text.matchAll(/@(\d{7,15})\b/g)]
     .map(m => `${m[1]}@s.whatsapp.net`);
   const allMentions = [...new Set([...(mentions ?? []), ...autoMentions])];
-  return sendWithRetry(() => s.sendMessage(jid, { text, mentions: allMentions }, withReplyOptions()));
+  const result = await sendWithRetry(() => s.sendMessage(jid, { text, mentions: allMentions }, withReplyOptions()));
+  mark("send:whatsapp");
+  return result;
 }
 
 /**

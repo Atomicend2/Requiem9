@@ -70,6 +70,25 @@ async function ensureIndexes(db: Db): Promise<void> {
     // ── Inventory ────────────────────────────────────────────────────────────
     // compound index covers both getInventory(userId) and duplicate-tool checks
     db.collection("inventory").createIndex({ user_id: 1, item: 1 }),
+    // PERF/FIX (2026-07-19): getBankCapExtra() in economy.ts (called on
+    // every .bal/.balance and .deposit/.dep, both high-traffic commands)
+    // does a $lookup from inventory into shop_items matching on
+    // { $toLower: "$name" } === { $toLower: "$item" }. This collection had
+    // NO index on `name` at all, and a plain index wouldn't have helped
+    // anyway — a $toLower expression can't use a standard index. Every
+    // call was a full collection scan of shop_items. Under concurrent
+    // load (multiple economy commands firing close together, seen in
+    // production logs overlapping in time) on a resource-constrained
+    // Atlas M0 cluster, this is a strong match for the extreme, highly
+    // variable latency spikes observed on .dep/.bal specifically (78s,
+    // 153s) versus other economy commands that don't call this function.
+    // A collation-based index with strength:2 lets MongoDB serve
+    // case-insensitive equality on `name` directly from the index instead
+    // of scanning + computing $toLower per document.
+    db.collection("shop_items").createIndex(
+      { name: 1 },
+      { collation: { locale: "en", strength: 2 } }
+    ),
     // ── Economy / auctions / lottery ─────────────────────────────────────────
     db.collection("auctions").createIndex({ active: 1, created_at: -1 }),
     db.collection("message_counts").createIndex({ group_id: 1 }),

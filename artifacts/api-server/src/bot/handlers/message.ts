@@ -1,5 +1,6 @@
 import type { WASocket, proto } from "@whiskeysockets/baileys";
 import { BOT_OWNER_LID, BOT_OWNER_PHONE, PREFIX, sendText, sendTextWithPreview, runWithReplyContext, getBotName, isOwnerPhone, isOwnerLid } from "../connection.js";
+import { withTrace, mark, formatTraceStages, type TraceStage } from "../cmd-trace.js";
 import { ensureUser, ensureGroup, incrementMessageCount, incrementGroupActivity, getStaff, isBanned, isUserBanned, getBotSetting, getUser, updateUser, getActiveMute, getGroup, linkUserLid, getUserByLid } from "../db/queries.js";
 import { checkAntilink, checkAntispam, checkBlacklist } from "./antispam.js";
 import { checkAutoSpawn, handleGetCard } from "./cardspawn.js";
@@ -551,18 +552,27 @@ Here is your full staff command reference — these are not shown in *.menu* sin
   const isHeavy    = HEAVY_CMDS.has(command);
   const heapBefore = isHeavy ? process.memoryUsage().heapUsed : 0;
   const cmdStart   = Date.now();
+  let stages: TraceStage[] = [];
   try {
-    await runWithReplyContext(normalizedMsg, () => dispatch(ctx), replySock);
+    const traced = await withTrace(() => runWithReplyContext(normalizedMsg, () => dispatch(ctx), replySock));
+    stages = traced.stages;
   } catch (err) {
     logger.error({ err, command }, "Error dispatching command");
     await sendText(from, `❌ An error occurred. Please try again.`).catch(() => {});
   } finally {
     const elapsed = Date.now() - cmdStart;
+    const stagesStr = stages.length ? formatTraceStages(stages) : undefined;
     if (isHeavy) {
       const heapDeltaMb = Math.round((process.memoryUsage().heapUsed - heapBefore) / 1024 / 1024);
-      logger.info({ command, elapsed, heapDeltaMb, from }, `⚡ heavy cmd .${command}: ${elapsed}ms, Δheap ${heapDeltaMb}MB`);
+      logger.info({ command, elapsed, heapDeltaMb, from, stages: stagesStr }, `⚡ heavy cmd .${command}: ${elapsed}ms, Δheap ${heapDeltaMb}MB${stagesStr ? ` [${stagesStr}]` : ""}`);
     } else if (elapsed > 2000) {
-      logger.warn({ command, elapsed, from }, `⚠️ Slow command: .${command} took ${elapsed}ms`);
+      // stagesStr is the whole point of this change — it turns "Slow
+      // command: .dep took 153881ms" (which stage?) into something like
+      // "Slow command: .dep took 153881ms [ensureUser:95ms
+      // getBankCapExtra:153201ms updateUser:410ms send:175ms]", which
+      // pinpoints the exact call responsible instead of requiring another
+      // round of manual code-reading per report.
+      logger.warn({ command, elapsed, from, stages: stagesStr }, `⚠️ Slow command: .${command} took ${elapsed}ms${stagesStr ? ` [${stagesStr}]` : ""}`);
     }
   }
 }

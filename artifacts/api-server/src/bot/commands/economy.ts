@@ -6,6 +6,7 @@ import {
   getXpLeaderboard, isBot, getAllFrames, getFrameById, equipFrame, getMentionName, getUserByLid,
 } from "../db/queries.js";
 import { col } from "../db/mongo.js";
+import { mark } from "../cmd-trace.js";
 import { ObjectId } from "mongodb";
 import { formatNumber, timeAgo, mentionTag, getWebsiteUrl } from "../utils.js";
 import { resolveMentionedJidAsync } from "../utils/identity.js";
@@ -88,25 +89,31 @@ const REGISTERED_ONLY_CMDS = new Set([
 ]);
 
 async function getBankCapExtra(userId: string): Promise<number> {
+  // PERF/FIX (2026-07-19): previously matched via
+  // { $expr: { $eq: [{ $toLower: "$name" }, "$$item"] } }, which computes
+  // $toLower on every document and can never use an index — a full
+  // shop_items collection scan on every call. This is called from .bal/
+  // .balance and .deposit/.dep, both high-traffic commands, and matches
+  // production logs showing extreme, highly variable latency (78s, 153s)
+  // specifically on commands that call this function, under concurrent
+  // load. Rewritten to use case-insensitive collation equality, which can
+  // use the collation-based index added on shop_items.name in mongo.ts.
+  // maxTimeMS added as a safety net regardless — this is user-facing
+  // financial data, so failing fast with a clear error beats hanging.
   const results = await col("inventory").aggregate([
     { $match: { user_id: userId, quantity: { $gt: 0 } } },
     {
       $lookup: {
         from: "shop_items",
-        let: { item: { $toLower: "$item" } },
-        pipeline: [
-          { $match: { $expr: { $and: [
-            { $eq: [{ $toLower: "$name" }, "$$item"] },
-            { $regexMatch: { input: { $ifNull: ["$effect", ""] }, regex: "^bank_cap:" } },
-          ] } } },
-          { $project: { effect: 1, _id: 0 } },
-        ],
+        localField: "item",
+        foreignField: "name",
         as: "si",
       },
     },
     { $unwind: "$si" },
+    { $match: { "si.effect": { $regex: "^bank_cap:" } } },
     { $project: { quantity: 1, effect: "$si.effect" } },
-  ]).toArray();
+  ], { collation: { locale: "en", strength: 2 }, maxTimeMS: 5000 }).toArray();
   return results.reduce((sum: number, row: any) => {
     const cap = parseInt((row.effect as string).split(":")[1] || "0");
     return sum + (isNaN(cap) ? 0 : cap * (row.quantity || 1));
@@ -117,6 +124,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
   const { from, sender, args, command: cmd, groupMeta, resolvedMentions } = ctx;
 
   const user = await ensureUser(sender);
+  mark("ensureUser");
   const userId = user?.id || sender.split("@")[0].split(":")[0];
   const now = Math.floor(Date.now() / 1000);
 
@@ -225,6 +233,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     if (amount > wallet) { await sendText(from, `❌ Not enough in wallet. Wallet: $${formatNumber(wallet)}`); return; }
     const BASE_CAP = 50_000;
     const extraCap = await getBankCapExtra(userId);
+    mark("getBankCapExtra");
     const bankCap = BASE_CAP + extraCap;
     const currentBank = user.bank || 0;
     if (currentBank >= bankCap) {
@@ -234,6 +243,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     const space = bankCap - currentBank;
     const actual = Math.min(amount, space);
     await updateUser(sender, { balance: wallet - actual, bank: currentBank + actual });
+    mark("updateUser");
     let msg = `✅ Deposited *$${formatNumber(actual)}* to bank.\nBank: *$${formatNumber(currentBank + actual)}* / *$${formatNumber(bankCap)}*`;
     if (actual < amount) msg += `\n⚠️ Only $${formatNumber(actual)} deposited — bank capacity reached. Buy a *Bank Note* to expand.`;
     await sendText(from, msg);
