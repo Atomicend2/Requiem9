@@ -167,21 +167,36 @@ router.get("/stats", requireAdminAccess as any, async (req: AuthRequest, res) =>
     // estimatedDocumentCount() reads collection metadata (O(1)) instead of
     // scanning every document — critical for the 51k-card cards collection.
     // countDocuments() is kept only where a filter is required.
+    //
+    // FIX (2026-07-19): previously only 1 of these 9 queries had `OPT`
+    // (maxTimeMS) applied — Promise.all waits for its slowest member, so a
+    // single unbounded query anywhere in this list (any of the 5
+    // estimatedDocumentCount() calls or the 3 unbounded find().toArray()
+    // calls) could stall the ENTIRE batch indefinitely. This is what
+    // actually reproduced the 25s admin/stats timeout even after adding
+    // maxTimeMS to isAdminToken/isStaff in requireAdminAccess — those
+    // fixes bounded the AUTH step, but this handler's own queries were
+    // still unbounded. Confirmed via production log: Mongo had been warm
+    // and serving other fast requests (/profile, /api/v1/user/*,
+    // admin/status x5) for 3 minutes before this specific request hung,
+    // ruling out a cold/reconnecting socket as the cause here — the
+    // remaining explanation is a stuck/slow operation on one of the
+    // previously-unbounded queries below. Every query now carries OPT.
     const [
       totalUsers, totalBots, totalCards, totalGuilds, totalBanned, totalStaff,
       recentUsers, staffDocs, bannedEntities,
     ] = await Promise.all([
       col("users").countDocuments({ is_bot: { $ne: 1 }, registered: 1 }, OPT),
-      col("bots").estimatedDocumentCount(),
-      col("cards").estimatedDocumentCount(),
-      col("guilds").estimatedDocumentCount(),
-      col("banned_entities").estimatedDocumentCount(),
-      col("staff").estimatedDocumentCount(),
+      col("bots").estimatedDocumentCount(OPT),
+      col("cards").estimatedDocumentCount(OPT),
+      col("guilds").estimatedDocumentCount(OPT),
+      col("banned_entities").estimatedDocumentCount(OPT),
+      col("staff").estimatedDocumentCount(OPT),
       col("users")
-        .find({ is_bot: { $ne: 1 }, $or: [{ registered: 1 }, { phone: { $nin: [null, ""] } }] })
+        .find({ is_bot: { $ne: 1 }, $or: [{ registered: 1 }, { phone: { $nin: [null, ""] } }] }, OPT)
         .sort({ created_at: -1 }).limit(20).toArray(),
-      col("staff").find({}).toArray(),
-      col("banned_entities").find({ type: "user" }).project({ _id: 1 }).toArray(),
+      col("staff").find({}, OPT).toArray(),
+      col("banned_entities").find({ type: "user" }, OPT).project({ _id: 1 }).toArray(),
     ]);
 
     // Derive sets/lists needed for Round 2
@@ -190,16 +205,17 @@ router.get("/stats", requireAdminAccess as any, async (req: AuthRequest, res) =>
     const recentUserIds = recentUsers.map((u: any) => String(u._id));
 
     // ── Round 2: queries that depend on Round 1 — still parallel ─────────────
+    // Same fix — all three now bounded, not just the middle one.
     const [staffUsers, topUsersRaw, recentStaffDocs] = await Promise.all([
       col("users")
-        .find({ _id: { $in: staffUserIds as any[] } })
+        .find({ _id: { $in: staffUserIds as any[] } }, OPT)
         .project({ _id: 1, name: 1, phone: 1 }).toArray(),
       // Fetch 15; filter banned in JS — removes the sequential bannedIds→topUsers dependency
       col("users")
         .find({ is_bot: { $ne: 1 }, registered: 1 }, OPT)
         .sort({ level: -1, xp: -1 }).limit(15)
         .project({ _id: 1, name: 1, phone: 1, level: 1, xp: 1, balance: 1, bank: 1 }).toArray(),
-      col("staff").find({ user_id: { $in: recentUserIds } }).toArray(),
+      col("staff").find({ user_id: { $in: recentUserIds } }, OPT).toArray(),
     ]);
 
     const botConnected = isSocketConnected();

@@ -1371,26 +1371,6 @@ async function dispatch(ctx: CommandContext): Promise<void> {
   }
 }
 
-async function sendWithRetry(fn: () => Promise<any>, retries = 4): Promise<any> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await fn();
-    } catch (err: any) {
-      const isRateLimit =
-        err?.message?.includes("rate-overlimit") ||
-        err?.output?.payload?.message?.includes("rate-overlimit") ||
-        err?.data === 429;
-      if (isRateLimit && attempt < retries) {
-        const delay = Math.min(2000 * Math.pow(2, attempt), 30000);
-        logger.warn({ attempt, delay }, "Rate-overlimit on reply socket, retrying");
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
 function createReplySocket(sock: WASocket, msg: proto.IWebMessageInfo): WASocket {
   return new Proxy(sock as any, {
     get(target, prop) {
@@ -1398,11 +1378,21 @@ function createReplySocket(sock: WASocket, msg: proto.IWebMessageInfo): WASocket
         const value = target[prop];
         return typeof value === "function" ? value.bind(target) : value;
       }
+      // NOTE: deliberately NOT wrapped in sendWithRetry here. Every caller
+      // that reaches this Proxy (sendText/sendImage/sendMessage in
+      // connection.ts, via getActiveSock()) already wraps its own call in
+      // sendWithRetry. Retrying here too meant every send retried TWICE —
+      // once at this layer, once at the caller's — compounding the 2s/4s/
+      // 8s/16s backoff at both levels. Confirmed against production logs:
+      // an observed 147769ms spike matches the double-retry worst-case
+      // (~150000ms) far more closely than the intended single-layer
+      // worst-case (~30000ms). This proxy's only job is injecting
+      // `quoted: msg` into the send options.
       return (jid: string, content: any, options?: any) => {
         if (content?.delete || content?.react || content?.edit) {
-          return sendWithRetry(() => target.sendMessage(jid, content, options));
+          return target.sendMessage(jid, content, options);
         }
-        return sendWithRetry(() => target.sendMessage(jid, content, { quoted: msg, ...(options || {}) }));
+        return target.sendMessage(jid, content, { quoted: msg, ...(options || {}) });
       };
     },
   }) as WASocket;
