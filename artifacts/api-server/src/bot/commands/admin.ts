@@ -8,6 +8,7 @@ import {
 import { sendText, sendTextWithPreview } from "../connection.js";
 import { formatNumber, mentionTag, normalizeId } from "../utils.js";
 import { resolveMentionedJidAsync } from "../utils/identity.js";
+import { mark } from "../cmd-trace.js";
 import { logger } from "../../lib/logger.js";
 import { execSync } from "node:child_process";
 import os from "node:os";
@@ -542,6 +543,7 @@ export async function handleAdmin(ctx: CommandContext): Promise<void> {
       return;
     }
     const activeRaw = await getActiveMembers(from);
+    mark("active:getActiveMembers");
     // Some message_counts rows were written back when a user's lid hadn't
     // yet been linked to their phone (a "ghost" row keyed by raw lid digits
     // instead of their real number). Displaying m.user_id directly for
@@ -555,6 +557,7 @@ export async function handleAdmin(ctx: CommandContext): Promise<void> {
           : m.user_id,
       }))
     );
+    mark("active:resolveActive");
     // Deduplicate by phone number — message_counts may have multiple rows
     // for the same user if they were ever recorded under different JIDs.
     const activeSeen = new Set<string>();
@@ -569,12 +572,27 @@ export async function handleAdmin(ctx: CommandContext): Promise<void> {
     // This is more reliable than querying message_counts for inactive rows,
     // which can duplicate (same phone in multiple message_count rows) and
     // can include users who have since left the group.
+    // PERF (2026-07-19): previously a sequential for-loop awaiting
+    // resolveMentionedJidAsync() once per participant — a real N+1 DB
+    // round-trip pattern for every @lid participant not already covered
+    // by cached group metadata. In a 100+ member group this fully
+    // explains a 60+ second .active command with otherwise-empty traced
+    // stages (this loop had no mark() calls, and it's exactly where the
+    // unaccounted time was going). Parallelized the same way
+    // activeResolved already is a few lines above — no ordering
+    // dependency between participants.
     const inactiveSeen = new Set<string>();
     const inactive: any[] = [];
-    for (const p of (groupMeta?.participants || []) as any[]) {
-      const resolvedId = (p.id as string)?.endsWith("@lid")
-        ? await resolveMentionedJidAsync(p.id as string, groupMeta, getUserByLid)
-        : p.id as string;
+    const participantsResolved = await Promise.all(
+      ((groupMeta?.participants || []) as any[]).map(async (p) => {
+        const resolvedId = (p.id as string)?.endsWith("@lid")
+          ? await resolveMentionedJidAsync(p.id as string, groupMeta, getUserByLid)
+          : (p.id as string);
+        return resolvedId;
+      })
+    );
+    mark("active:resolveParticipants");
+    for (const resolvedId of participantsResolved) {
       const phone = resolvedId?.split("@")[0]?.split(":")?.[0]?.replace(/\D/g, "") || "";
       if (!phone || activeSeen.has(phone) || inactiveSeen.has(phone)) continue;
       inactiveSeen.add(phone);

@@ -33,15 +33,23 @@ const traceContext = new AsyncLocalStorage<TraceState>();
  * instead of requiring a separate getTraceStages() call after the await.
  * (Verified with an isolated test before wiring this into message.ts —
  * an earlier version of this function required a separate post-await
- * getTraceStages() call and silently returned null every time.) */
+ * getTraceStages() call and silently returned null every time.)
+ *
+ * CORRECTED (2026-07-19): this used to reuse traceContext.getStore() when
+ * truthy ("nested call, share the parent trace"), intended for a command
+ * handler calling another instrumented function within the same call
+ * stack. In production this instead corrupted traces across what should
+ * be two fully independent top-level commands: enqueueForChat() chains
+ * tasks via `prev.then(task, task)`, and AsyncLocalStorage context can
+ * follow a promise-chain continuation in ways that don't match clean
+ * call-stack nesting — so a later command's withTrace() call sometimes
+ * saw an EARLIER, already-finished command's state as "existing" and
+ * appended its own marks onto that stale stages array. Confirmed via
+ * production logs: a corrupted trace's first N entries summed to exactly
+ * the prior command's reported elapsed time. Always creating a fresh,
+ * independent context avoids this — nothing in this codebase actually
+ * needs cross-call trace merging. */
 export async function withTrace<T>(fn: () => Promise<T>): Promise<{ result: T; stages: TraceStage[] }> {
-  const existing = traceContext.getStore();
-  if (existing) {
-    // Already inside a trace (nested call) — don't create a new one,
-    // just run and return the shared stages reference.
-    const result = await fn();
-    return { result, stages: existing.stages };
-  }
   const now = Date.now();
   const state: TraceState = { startedAt: now, lastMarkAt: now, stages: [] };
   const result = await traceContext.run(state, fn);

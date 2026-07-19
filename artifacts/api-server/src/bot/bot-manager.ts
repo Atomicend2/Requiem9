@@ -96,6 +96,12 @@ export async function startBot(botId: string): Promise<void> {
     logger: silent,
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
+    markOnlineOnConnect: true,
+    retryRequestDelayMs: 1000,
+    maxMsgRetryCount: 5,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 30000,
     browser: ["Ubuntu", "Chrome", "22.04.4"],
     cachedGroupMetadata: async (jid) => {
       const cached = groupMetaCache.get(jid);

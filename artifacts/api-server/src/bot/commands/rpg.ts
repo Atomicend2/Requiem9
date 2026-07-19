@@ -805,6 +805,7 @@ export async function handleRpg(ctx: CommandContext): Promise<void> {
     // Entry fee for floor 4+. Floors 1-3 are free so new players can learn
     // the system; each floor beyond 3 costs $1,500 more at the gate.
     const entryFee = floor > 3 ? (floor - 3) * 1500 : 0;
+    let entryFeeNotice = "";
     if (entryFee > 0) {
       const dungeonUser = await getUser(sender);
       const walletBal = dungeonUser?.balance || 0;
@@ -818,7 +819,13 @@ export async function handleRpg(ctx: CommandContext): Promise<void> {
         return;
       }
       await updateUser(userId, { balance: walletBal - entryFee });
-      await sendText(from, `💸 Entry fee paid: *${formatNumber(entryFee)}* for Floor ${floor}`);
+      // PERF: previously sent as its own sendText() call, immediately
+      // followed by a second sendText() for the battle-start message a
+      // few lines below. Each WhatsApp send in production traces
+      // (2026-07-19) costs 8-12s regardless of command, so two sends
+      // for one .dungeon invocation doubled that cost for no UX reason
+      // — folded into a single prefix on the battle-start message instead.
+      entryFeeNotice = `💸 Entry fee paid: *${formatNumber(entryFee)}* for Floor ${floor}\n\n`;
     }
 
     const enemy = getDungeonEnemy(floor);
@@ -854,7 +861,7 @@ export async function handleRpg(ctx: CommandContext): Promise<void> {
     };
     activeDungeonBattles.set(sender, battle);
     await updateRpg(userId, { last_dungeon: now });
-    await sendText(from, dungeonBattleDisplay(battle, rpg.level, `🏰 *Entering Dungeon Floor ${floor}...*`));
+    await sendText(from, entryFeeNotice + dungeonBattleDisplay(battle, rpg.level, `🏰 *Entering Dungeon Floor ${floor}...*`));
     return;
   }
 
