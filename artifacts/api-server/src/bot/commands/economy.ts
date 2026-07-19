@@ -1,7 +1,7 @@
 import type { CommandContext } from "./index.js";
 import { BOT_OWNER_LID, sendText, sendTextWithPreview } from "../connection.js";
 import {
-  getUser, ensureUser, updateUser, getInventory, addToInventory, removeFromInventory,
+  getUser, ensureUser, updateUser, incrementUserFields, decrementUserFieldFloored, getInventory, addToInventory, removeFromInventory,
   getShop, getShopItem, getRichList, ensureRpg, getUserRank, getUserGuild, isBanned, getStaff, isMod,
   getXpLeaderboard, isBot, getAllFrames, getFrameById, equipFrame, getMentionName, getUserByLid,
 } from "../db/queries.js";
@@ -782,7 +782,13 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     if (diff < DIG_COOLDOWN) { await sendText(from, `⏳ Cooldown: ${formatDuration(DIG_COOLDOWN - diff)} left to dig again.`); return; }
     const find = DIG_FINDS[Math.floor(Math.random() * DIG_FINDS.length)];
     const value = randomDigFishReward();
-    await updateUser(sender, { balance: (user.balance || 0) + value, last_dig: now });
+    // SECURITY FIX (2026-07-19): was `updateUser(sender, { balance: (user.balance||0)+value })`,
+    // a read-modify-write vulnerable to a race if two commands for the
+    // same person run concurrently — see incrementUserFields's doc
+    // comment. Split into an atomic increment for balance plus a plain
+    // set for the cooldown timestamp (last_dig doesn't need atomicity).
+    await incrementUserFields(sender, { balance: value });
+    await updateUser(sender, { last_dig: now });
     await addToInventory(userId, find.item);
     await sendText(from, `⛏️ You dug and found: *${find.item}*!\n+${formatNumber(value)}`);
     return;
@@ -801,7 +807,8 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     if (diff < FISH_COOLDOWN) { await sendText(from, `⏳ Cooldown: ${formatDuration(FISH_COOLDOWN - diff)} left to fish again.`); return; }
     const catch_ = FISH_CATCHES[Math.floor(Math.random() * FISH_CATCHES.length)];
     const value = randomDigFishReward();
-    await updateUser(sender, { balance: (user.balance || 0) + value, last_fish: now });
+    await incrementUserFields(sender, { balance: value });
+    await updateUser(sender, { last_fish: now });
     await addToInventory(userId, catch_.item);
     await sendText(from, `🎣 You fished and caught: *${catch_.item}*!\n+${formatNumber(value)}`);
     return;
@@ -813,7 +820,8 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     if (diff < BEG_COOLDOWN) { await sendText(from, `⏳ Cooldown: ${formatDuration(BEG_COOLDOWN - diff)} left.`); return; }
     const response = BEG_RESPONSES[Math.floor(Math.random() * BEG_RESPONSES.length)];
     const earned = 10 + Math.floor(Math.random() * 90);
-    await updateUser(sender, { balance: (user.balance || 0) + earned, last_beg: now });
+    await incrementUserFields(sender, { balance: earned });
+    await updateUser(sender, { last_beg: now });
     await sendText(from, `🙏 ${response}\nYou received *$${formatNumber(earned)}*.`);
     return;
   }
@@ -855,14 +863,22 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     if (success) {
       const pct = 0.1 + Math.random() * 0.2;
       const stolen = Math.max(1, Math.floor(targetBal * pct));
-      await updateUser(sender, { balance: (user.balance || 0) + stolen });
-      await updateUser(targetId, { balance: Math.max(0, targetBal - stolen) });
-      await sendText(from, `🔫 *Heist Successful!*${hasLockpick ? " 🗝️" : ""}\n\nYou robbed ${mentionTag(targetId)} and got away with *$${formatNumber(stolen)}*!\nYour new balance: $${formatNumber((user.balance || 0) + stolen)}`, [targetId]);
+      // SECURITY FIX (2026-07-19): atomic operations on both sides
+      // instead of read-modify-write — this command moves money between
+      // two different users' documents, making it the highest-risk call
+      // site for the race described in incrementUserFields's doc
+      // comment. Target's side uses the floor-safe decrement since it
+      // must never go negative even under a rare remaining race window.
+      await incrementUserFields(sender, { balance: stolen });
+      await decrementUserFieldFloored(targetId, "balance", stolen);
+      const newBal = (user.balance || 0) + stolen;
+      await sendText(from, `🔫 *Heist Successful!*${hasLockpick ? " 🗝️" : ""}\n\nYou robbed ${mentionTag(targetId)} and got away with *$${formatNumber(stolen)}*!\nYour new balance: $${formatNumber(newBal)}`, [targetId]);
     } else {
       const pct = 0.05 + Math.random() * 0.1;
       const lost = Math.max(1, Math.floor((user.balance || 0) * pct));
-      await updateUser(sender, { balance: Math.max(0, (user.balance || 0) - lost) });
-      await sendText(from, `🚓 *Caught Red-Handed!*\n\nYou failed to rob ${mentionTag(targetId)} and lost *$${formatNumber(lost)}* in the chaos.\nYour new balance: $${formatNumber(Math.max(0, (user.balance || 0) - lost))}`, [targetId]);
+      await decrementUserFieldFloored(sender, "balance", lost);
+      const newBal = Math.max(0, (user.balance || 0) - lost);
+      await sendText(from, `🚓 *Caught Red-Handed!*\n\nYou failed to rob ${mentionTag(targetId)} and lost *$${formatNumber(lost)}* in the chaos.\nYour new balance: $${formatNumber(newBal)}`, [targetId]);
     }
     return;
   }

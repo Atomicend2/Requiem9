@@ -76,8 +76,10 @@ async function generateCopyId(): Promise<string> {
 export async function getUser(userId: string): Promise<any> {
   const phone = extractNumberFromJid(userId);
   const byId = await col("users").findOne({ _id: phone as any });
+  mark("getUser:byId");
   if (byId) return { ...byId, id: byId._id };
   const byLid = await col("users").findOne({ lid: phone });
+  mark("getUser:byLid(fallback)");
   if (byLid) return { ...byLid, id: byLid._id };
   return null;
 }
@@ -136,6 +138,52 @@ export async function getMentionName(userId: string): Promise<string> {
   }
   if (user?.id) return user.id;
   return phone;
+}
+
+/** Atomically increments one or more numeric fields on a user document via
+ * Mongo's $inc — safe under concurrent calls for the same user, unlike
+ * updateUser(id, { balance: (user.balance||0) + value }), which computes
+ * the new value from an in-memory snapshot and is vulnerable to a
+ * read-modify-write race if two commands for the same person run
+ * concurrently (this can happen even for a single real person: WhatsApp
+ * sometimes reports the same sender as a phone-JID and sometimes as a
+ * @lid JID for the same underlying account, and the per-sender command
+ * queue currently keys on the raw JID string, not the resolved identity
+ * — so those two forms don't serialize against each other). Confirmed as
+ * the likely cause of an unexplained ~2x balance jump in production
+ * (2026-07-19) with no corresponding activity reported by other players.
+ * Use this for any balance/currency change instead of updateUser's
+ * read-then-add pattern. Does NOT support non-numeric field updates —
+ * pass those to updateUser() separately, or call both if a command needs
+ * to increment balance AND set an unrelated field in the same command. */
+/** Atomically subtracts `amount` from a numeric field, clamping the result
+ * at 0 — entirely server-side via an aggregation-pipeline update, so the
+ * floor check can't be fooled by a stale read (unlike
+ * `updateUser(id, { balance: Math.max(0, staleBalance - amount) })`,
+ * which computes the floor in application code from a balance that may
+ * no longer be current by the time the write lands). Use this for any
+ * balance deduction where going negative must be impossible. */
+export async function decrementUserFieldFloored(userId: string, field: string, amount: number): Promise<void> {
+  const phone = extractNumberFromJid(userId);
+  if (amount <= 0) return;
+  await col("users").updateOne(
+    { _id: phone as any },
+    [
+      { $set: { [field]: { $max: [0, { $subtract: [{ $ifNull: [`$${field}`, 0] }, amount] }] } } },
+      { $set: { updated_at: now() } },
+    ] as any,
+    { upsert: true }
+  );
+}
+
+export async function incrementUserFields(userId: string, increments: Record<string, number>): Promise<void> {
+  const phone = extractNumberFromJid(userId);
+  if (Object.keys(increments).length === 0) return;
+  await col("users").updateOne(
+    { _id: phone as any },
+    { $inc: increments, $set: { updated_at: now() } },
+    { upsert: true }
+  );
 }
 
 export async function updateUser(userId: string, data: Record<string, any>): Promise<void> {
