@@ -7,6 +7,7 @@
 import { col, ObjectId } from "./mongo.js";
 import { escapeRegex } from "../utils.js";
 import { xpNeededForLevel } from "../../lib/xp-curve.js";
+import { mark } from "../cmd-trace.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  JID / phone normalisation helpers
@@ -49,8 +50,12 @@ async function generateDisplayId(): Promise<string> {
   for (let tries = 0; tries < 50; tries++) {
     const did = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
     const exists = await col("users").findOne({ display_id: did });
-    if (!exists) return did;
+    if (!exists) {
+      mark(`generateDisplayId(tries=${tries + 1})`);
+      return did;
+    }
   }
+  mark("generateDisplayId(exhausted:50)");
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
@@ -87,8 +92,10 @@ export async function getUserByLid(lid: string): Promise<any> {
 export async function ensureUser(userId: string, name?: string): Promise<any> {
   const phone = extractNumberFromJid(userId);
   const existing = await getUser(phone);
+  mark("ensureUser:read");
   if (!existing) {
     const did = await generateDisplayId();
+    mark("ensureUser:genDisplayId(new)");
     await col("users").insertOne({
       _id: phone as any,
       name: name || phone,
@@ -98,18 +105,25 @@ export async function ensureUser(userId: string, name?: string): Promise<any> {
       registered: 0,
       created_at: now(),
     });
+    mark("ensureUser:insert");
   } else {
     const targetId = existing._id || existing.id;
     const updates: Record<string, any> = {};
-    if (!existing.display_id) updates.display_id = await generateDisplayId();
+    if (!existing.display_id) {
+      updates.display_id = await generateDisplayId();
+      mark("ensureUser:genDisplayId(existing)");
+    }
     if (name && name !== targetId && (!existing.name || existing.name === targetId || existing.name === phone)) {
       updates.name = name;
     }
     if (Object.keys(updates).length > 0) {
       await col("users").updateOne({ _id: targetId as any }, { $set: updates });
+      mark("ensureUser:update");
     }
   }
-  return getUser(phone);
+  const result = await getUser(phone);
+  mark("ensureUser:finalRead");
+  return result;
 }
 
 export async function getMentionName(userId: string): Promise<string> {
