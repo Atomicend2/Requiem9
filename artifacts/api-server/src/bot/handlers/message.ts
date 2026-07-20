@@ -1,6 +1,7 @@
 import type { WASocket, proto } from "@whiskeysockets/baileys";
 import { BOT_OWNER_LID, BOT_OWNER_PHONE, PREFIX, sendText, sendTextWithPreview, runWithReplyContext, getBotName, isOwnerPhone, isOwnerLid } from "../connection.js";
 import { withTrace, mark, formatTraceStages, type TraceStage } from "../cmd-trace.js";
+import { classifyError } from "../error-tag.js";
 import { ensureUser, ensureGroup, incrementMessageCount, incrementGroupActivity, getStaff, isBanned, isUserBanned, getBotSetting, getUser, updateUser, getActiveMute, getGroup, linkUserLid, getUserByLid } from "../db/queries.js";
 import { checkAntilink, checkAntispam, checkBlacklist } from "./antispam.js";
 import { checkAutoSpawn, handleGetCard } from "./cardspawn.js";
@@ -557,7 +558,8 @@ Here is your full staff command reference — these are not shown in *.menu* sin
     const traced = await withTrace(() => runWithReplyContext(normalizedMsg, () => dispatch(ctx), replySock));
     stages = traced.stages;
   } catch (err) {
-    logger.error({ err, command }, "Error dispatching command");
+    const tagged = classifyError(err);
+    logger.error({ err, command, errorTag: tagged.tag, errorCategory: tagged.category, errorReason: tagged.reason }, `${tagged.tag} Error dispatching command: ${tagged.reason}`);
     await sendText(from, `❌ An error occurred. Please try again.`).catch(() => {});
   } finally {
     const elapsed = Date.now() - cmdStart;

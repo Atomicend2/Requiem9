@@ -9,6 +9,8 @@ import {
 import { PERSONA_LIST, isValidPersona } from "../../bot/commands/personas.js";
 import { extractPhone } from "../../bot/utils/identity.js";
 import { deleteUserProfile } from "../../bot/db/queries.js";
+import { logger } from "../../lib/logger.js";
+import { classifyError } from "../../bot/error-tag.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -258,6 +260,8 @@ router.get("/stats", requireAdminAccess as any, async (req: AuthRequest, res) =>
   } catch (err: any) {
     // If MongoDB isn't connected yet, return zero-state stats so the dashboard
     // still renders.  Do NOT cache the error response.
+    const tagged = classifyError(err);
+    logger.error({ err, errorTag: tagged.tag, errorCategory: tagged.category, errorReason: tagged.reason }, `${tagged.tag} admin/stats failed: ${tagged.reason}`);
     const botConnected = isSocketConnected();
     res.json({
       botConnected, pairingCode: null, isOwner: false,
