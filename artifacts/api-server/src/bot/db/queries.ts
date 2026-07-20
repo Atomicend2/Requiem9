@@ -176,6 +176,23 @@ export async function decrementUserFieldFloored(userId: string, field: string, a
   );
 }
 
+/** Like incrementUserFields, but also accepts plain $set fields in the same
+ * atomic operation — for cases (gambling commands) that need to both
+ * atomically increment a numeric field (balance) AND set several
+ * non-numeric bookkeeping fields (daily gamble count/date, streak,
+ * last-used timestamp) in one write. Splitting these into two separate
+ * calls (one $inc, one $set) would reopen a race window between them. */
+export async function incrementAndSetUserFields(
+  userId: string,
+  increments: Record<string, number>,
+  sets: Record<string, any> = {}
+): Promise<void> {
+  const phone = extractNumberFromJid(userId);
+  const update: Record<string, any> = { $set: { ...sets, updated_at: now() } };
+  if (Object.keys(increments).length > 0) update.$inc = increments;
+  await col("users").updateOne({ _id: phone as any }, update, { upsert: true });
+}
+
 export async function incrementUserFields(userId: string, increments: Record<string, number>): Promise<void> {
   const phone = extractNumberFromJid(userId);
   if (Object.keys(increments).length === 0) return;

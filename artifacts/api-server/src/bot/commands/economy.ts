@@ -129,7 +129,15 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
 
   if (REGISTERED_ONLY_CMDS.has(cmd) && !user.registered) {
-    await sendText(from, "❌ You need to complete registration first.\n\nType *.reg* to register via WhatsApp, or visit the website to register and verify with OTP.");
+    // FIX (2026-07-20): this used to tell every unregistered user to type
+    // .reg, even though web registration already auto-links by phone
+    // number with no further WhatsApp step needed (ensureUser never
+    // touches `registered`, and .reg's own text says "links
+    // automatically once you register"). If someone registered on the
+    // web with a number that doesn't match what WhatsApp reports for
+    // them, .reg is still the right recovery step — kept as a mention,
+    // but the primary instruction now matches what actually happens.
+    await sendText(from, `❌ This number isn't linked to a registered account yet.\n\n🌐 Register at ${process.env["WEBSITE_URL"] || "https://requiemorder.qd.je/"} with this WhatsApp number (include your country code) — you'll be able to use *.dig*, *.fish*, and other commands immediately after, no extra step needed.\n\nAlready registered but seeing this? Type *.reg* to check what number the bot has linked.`);
     return;
   }
 

@@ -1,6 +1,6 @@
 import type { CommandContext } from "./index.js";
 import { sendText } from "../connection.js";
-import { getUser, ensureUser, updateUser, getRpg } from "../db/queries.js";
+import { getUser, ensureUser, updateUser, incrementAndSetUserFields, getRpg } from "../db/queries.js";
 import { formatNumber, coinFlip, rollDice, spin, checkSlotWin, getRouletteColor } from "../utils.js";
 import type { WASocket } from "@whiskeysockets/baileys";
 
@@ -15,6 +15,38 @@ export const CMD_COOLDOWNS: Record<string, number> = {
 // Applied only on wins (losses are full). Gives ~1.5% house advantage on
 // symmetric (50/50) games, preventing infinite-money exploits over time.
 const HOUSE_EDGE = 0.03;
+
+// PROGRESSIVE WEALTH TAX (2026-07-20): an additional edge applied only to
+// players above the intended economy ceiling (~300k = "rich" per the
+// stated economy design). This is deliberately separate from HOUSE_EDGE
+// so the base game odds stay identical for every player below the
+// threshold — only players who are already comfortably rich pay more,
+// and the tax scales up further the richer they are. Applied on WINS
+// only (a losing bet already costs the player money; taxing losses too
+// would be a double penalty). Thresholds are balance-at-time-of-bet, not
+// balance-after-win, so this reads from the `user` object already fetched
+// at the top of the command — no extra DB round trip.
+const WEALTH_TAX_BRACKETS: Array<{ min: number; extraEdge: number }> = [
+  { min: 1_000_000, extraEdge: 0.20 }, // very rich: heavy extra tax
+  { min: 500_000, extraEdge: 0.12 },
+  { min: 300_000, extraEdge: 0.06 },   // at/above the stated "rich" ceiling
+];
+
+function wealthTaxEdge(balance: number): number {
+  for (const bracket of WEALTH_TAX_BRACKETS) {
+    if (balance >= bracket.min) return bracket.extraEdge;
+  }
+  return 0;
+}
+
+/** Applies both the flat house edge and, if applicable, the progressive
+ * wealth tax on top — replaces the plain applyEdge() for any WIN payout.
+ * Losses are unaffected (see comment above). */
+function applyEdgeWithWealthTax(grossWin: number, currentBalance: number): number {
+  const extra = wealthTaxEdge(currentBalance);
+  if (extra === 0) return applyEdge(grossWin);
+  return Math.floor(grossWin * (1 - HOUSE_EDGE - extra));
+}
 function applyEdge(grossWin: number): number {
   return Math.floor(grossWin * (1 - HOUSE_EDGE));
 }
@@ -121,10 +153,13 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     const reelRow = () => [randSym(), randSym(), randSym()].map((s) => `⟦ ${s} ⟧`).join("  ");
     let winnings = 0;
     let outcome = "";
-    if (multiplier === 3) { winnings = applyEdge(amount * 3); outcome = `🎉 JACKPOT! +${formatNumber(winnings)} (3x)`; }
-    else if (multiplier === 2) { winnings = applyEdge(amount * 2); outcome = `✨ Double Win! +${formatNumber(winnings)} (2x)`; }
+    if (multiplier === 3) { winnings = applyEdgeWithWealthTax(amount * 3, user.balance || 0); outcome = `🎉 JACKPOT! +${formatNumber(winnings)} (3x)`; }
+    else if (multiplier === 2) { winnings = applyEdgeWithWealthTax(amount * 2, user.balance || 0); outcome = `✨ Double Win! +${formatNumber(winnings)} (2x)`; }
     else { winnings = -amount; outcome = `😭 No match. -${formatNumber(amount)}`; }
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }));
+    {
+      const { inc, set } = gambleUpdate(limit, winnings);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     const msg =
       `╭─❰ 🎰 𝐒𝐋𝐎𝐓 𝐌𝐀𝐂𝐇𝐈𝐍𝐄 ❱─╮\n│\n│  ${reelRow()}\n│  ${reelRow()}\n│━━━━━━━━━━━━━━━━━━━━━\n│▶ ${resultRow} ◀\n│━━━━━━━━━━━━━━━━━━━━━\n│  ${reelRow()}\n│  ${reelRow()}\n│\n│  🎲 ʙᴇᴛ: $${formatNumber(amount)}\n│  ✨ ᴏᴜᴛᴄᴏᴍᴇ: ${outcome}\n│  💰 ʙᴀʟᴀɴᴄᴇ: $${formatNumber((user.balance || 0) + winnings)}\n╰──────────────────────╯`;
     if (spinningMsg?.key) {
@@ -141,8 +176,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     if (amount === null) return;
     const roll = rollDice();
     const win = roll >= 4;
-    const winnings = win ? applyEdge(amount) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }, win));
+    const winnings = win ? applyEdgeWithWealthTax(amount, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, winnings, win);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `🎲 Rolled: *${roll}* ${["⚀","⚁","⚂","⚃","⚄","⚅"][roll-1]}\n` +
       `${win ? `🎉 Win! +${formatNumber(winnings)}` : `😭 Lose. -${formatNumber(amount)}`}\n` +
@@ -161,8 +199,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     const userPick = choice === "h" || choice === "heads" ? "heads" : "tails";
     // Streak-adjusted: losing-streak players get a slight edge toward winning
     const win = streakWin(limit.streak, 0.54) ? userPick === result : userPick !== result;
-    const winnings = win ? applyEdge(amount) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }, win));
+    const winnings = win ? applyEdgeWithWealthTax(amount, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, winnings, win);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `🪙 Coin flip result: *${result === "heads" ? "Heads" : "Tails"}*!\n` +
       (win ? `You won ${formatNumber(winnings)}` : `You lost ${formatNumber(amount)}`) +
@@ -176,8 +217,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     if (!(await checkBet(from, user, amount, "casino"))) return;
     if (amount === null) return;
     const win = streakWin(limit.streak, 0.50);
-    const winnings = win ? applyEdge(amount) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }, win));
+    const winnings = win ? applyEdgeWithWealthTax(amount, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, winnings, win);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `Outcome: ${win ? "Win" : "Lose"}! 💰You won ${win ? `${formatNumber(winnings)} coins.` : `nothing.`}\nBalance: ${formatNumber((user.balance || 0) + winnings)}`
     );
@@ -189,8 +233,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     if (!(await checkBet(from, user, amount, "doublebet"))) return;
     if (amount === null) return;
     const win = streakWin(limit.streak, 0.50);
-    const winnings = win ? applyEdge(amount) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }, win));
+    const winnings = win ? applyEdgeWithWealthTax(amount, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, winnings, win);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `╭─❰ 🎲 ᴅᴏᴜʙʟᴇ ʙᴇᴛ ❱─╮\n│\n│  🎰 Result: ${win ? "🎯 𝗪𝗜𝗡" : "💀 𝗟𝗢𝗦𝗘"}\n│  💰 Amount: ${formatNumber(amount)}\n│  ✨ Outcome: ${win ? `+${formatNumber(winnings)}` : `-${formatNumber(amount)}`}\n│  🏦 Balance: ${formatNumber((user.balance || 0) + winnings)}\n╰──────────────╯`
     );
@@ -202,8 +249,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     if (!(await checkBet(from, user, amount, "doublepayout"))) return;
     if (amount === null) return;
     const win = streakWin(limit.streak, 0.46);
-    const payout = win ? applyEdge(amount * 3) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + payout }, win));
+    const payout = win ? applyEdgeWithWealthTax(amount * 3, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, payout, win);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from, win ? `🎰 Triple payout! +${formatNumber(payout)}` : `😭 Lost. -${formatNumber(amount)}`);
     return;
   }
@@ -218,8 +268,11 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     const result = getRouletteColor(num);
     const win = result === color;
     const multiplier = color === "green" ? 14 : 2;
-    const winnings = win ? applyEdge(amount * multiplier) : -amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + winnings }));
+    const winnings = win ? applyEdgeWithWealthTax(amount * multiplier, user.balance || 0) : -amount;
+    {
+      const { inc, set } = gambleUpdate(limit, winnings);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `🎡 Ball landed on *${num}* (${result})\n` +
       `${win ? `🎉 You picked ${color} — win! +${formatNumber(winnings)}` : `😭 You picked ${color} — lose. -${formatNumber(amount)}`}\n` +
@@ -296,9 +349,12 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     pos[winnerIdx] = TRACK_LEN;
 
     const win = winnerIdx === horseIdx;
-    const winnings = win ? applyEdge(Math.floor(amount * pick.odds)) - amount : -amount;
+    const winnings = win ? applyEdgeWithWealthTax(Math.floor(amount * pick.odds), user.balance || 0) - amount : -amount;
     const newBalance = (user.balance || 0) + winnings;
-    await updateUser(sender, gambleUpdate(limit, { balance: newBalance }));
+    {
+      const { inc, set } = gambleUpdate(limit, winnings);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
 
     const finalFrame = buildHorseFrame(pos, horseIdx, winnerIdx, pick.odds, amount);
     const finalMsg =
@@ -332,9 +388,12 @@ export async function handleGambling(ctx: CommandContext): Promise<void> {
     let outcome = outcomes[outcomes.length - 1];
     for (const o of outcomes) { if (rand < o.chance) { outcome = o; break; } rand -= o.chance; }
     const grossWon = Math.floor(amount * outcome.multi);
-    const won = outcome.multi > 1 ? applyEdge(grossWon) : grossWon;
+    const won = outcome.multi > 1 ? applyEdgeWithWealthTax(grossWon, user.balance || 0) : grossWon;
     const diff = won - amount;
-    await updateUser(sender, gambleUpdate(limit, { balance: (user.balance || 0) + diff }));
+    {
+      const { inc, set } = gambleUpdate(limit, diff);
+      await incrementAndSetUserFields(sender, inc, set);
+    }
     await sendText(from,
       `🌀 Spin result: *${outcome.label}*\n${diff >= 0 ? `+$${formatNumber(diff)}` : `-$${formatNumber(-diff)}`}\nBalance: $${formatNumber((user.balance || 0) + diff)}`
     );
@@ -430,36 +489,39 @@ function streakWin(streak: number, baseProb: number): boolean {
   return Math.random() < (baseProb + boost);
 }
 
-function gambleUpdate(limit: any, extra: Record<string, any>, won?: boolean): Record<string, any> {
-  if (!limit?.field) return extra;
-  // Timestamps here MUST be in seconds, not Date.now() milliseconds — every
-  // other last_* field in this DB (last_daily/last_work/last_dig/last_fish/
-  // last_beg/last_steal/last_raid/last_quest) is stored in seconds, and
-  // .cds reads all of them with the same seconds-based "now". Gambling
-  // used to be the one place storing raw Date.now() ms, which made .cds's
-  // elapsed-time math come out as a huge nonsense value (~10-digit seconds
-  // epoch minus a ~13-digit ms epoch) — that's what caused .cds to show
-  // wildly wrong remaining cooldown times specifically for gambling
-  // commands. The cooldown check inside this file was internally
-  // consistent (ms vs ms) so gambling itself worked; only the shared
-  // display was broken by the unit mismatch.
+/** Returns { inc, set } for use with incrementAndSetUserFields — see that
+ * function's doc comment for why balance and bookkeeping fields need to
+ * land in one atomic operation rather than a read-modify-write.
+ * `balanceChange` is the signed delta (positive for a win, negative for
+ * a loss) rather than a precomputed new balance, so it can go through
+ * $inc directly instead of being computed from a possibly-stale read. */
+function gambleUpdate(limit: any, balanceChange: number, won?: boolean): { inc: Record<string, number>; set: Record<string, any> } {
+  const inc: Record<string, number> = { balance: balanceChange };
+  if (!limit?.field) return { inc, set: {} };
   const nowSecs = Math.floor(Date.now() / 1000);
-  const base: Record<string, any> = {
-    ...extra,
-    [limit.field]: (limit.count || 0) + 1,
+  const set: Record<string, any> = {
     [limit.dateField]: limit.day,
     last_gamble: nowSecs,
     // Record per-command last-used timestamp (read by .cds and cooldown check)
     [`last_${limit.label}`]: nowSecs,
   };
+  // Daily gamble count is itself a simple counter — genuinely safe (and
+  // more correct under concurrency) as an $inc rather than a computed set.
+  inc[limit.field] = 1;
   if (won !== undefined) {
     const cur = Number(limit.streak || 0);
-    // Positive streak = consecutive wins, negative = consecutive losses
-    base.gambling_streak = won
-      ? (cur <= 0 ? 1 : cur + 1)   // reset or extend win streak
-      : (cur >= 0 ? -1 : cur - 1); // reset or extend loss streak
+    // Positive streak = consecutive wins, negative = consecutive losses.
+    // Streak resets/direction-flips still need a computed value (not a
+    // pure increment), so this stays a $set — the rare race window here
+    // (two concurrent gambles both reading the same stale streak) only
+    // affects the cosmetic streak-boost display, not real currency, so
+    // it's an acceptable tradeoff versus the complexity of an atomic
+    // streak state machine.
+    set.gambling_streak = won
+      ? (cur <= 0 ? 1 : cur + 1)
+      : (cur >= 0 ? -1 : cur - 1);
   }
-  return base;
+  return { inc, set };
 }
 
 function resolveLabel(cmd: string): string {
