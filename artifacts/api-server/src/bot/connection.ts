@@ -512,7 +512,7 @@ export async function connectToWhatsApp(phoneNumber?: string, options: ConnectOp
   return sock;
 }
 
-async function sendWithRetry(fn: () => Promise<any>, retries = 4): Promise<any> {
+export async function sendWithRetry(fn: () => Promise<any>, retries = 4): Promise<any> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
@@ -638,9 +638,9 @@ export async function sendImageFromUrl(jid: string, url: string, caption?: strin
   return sendWithRetry(() => s.sendMessage(jid, { image: { url }, caption: caption || "", mentions }, withReplyOptions()));
 }
 
-export async function sendVideo(jid: string, videoBuffer: Buffer, caption?: string) {
+export async function sendVideo(jid: string, videoBuffer: Buffer, caption?: string, mentions?: string[]) {
   const s = getActiveSock();
-  return sendWithRetry(() => s.sendMessage(jid, { video: videoBuffer, gifPlayback: true, mimetype: "video/mp4", caption: caption || "" }, withReplyOptions()));
+  return sendWithRetry(() => s.sendMessage(jid, { video: videoBuffer, gifPlayback: true, mimetype: "video/mp4", caption: caption || "", mentions }, withReplyOptions()));
 }
 
 const execFileAsync = promisify(execFile);

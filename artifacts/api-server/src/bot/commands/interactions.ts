@@ -1,5 +1,5 @@
 import type { CommandContext } from "./index.js";
-import { sendText, animatedToMp4 } from "../connection.js";
+import { sendText, sendVideo, animatedToMp4 } from "../connection.js";
 import { mentionTag } from "../utils.js";
 import { logger } from "../../lib/logger.js";
 
@@ -123,19 +123,13 @@ async function sendInteractionResult(ctx: CommandContext, text: string, mentions
   const gifBuffer = await fetchInteractionGif(ctx.command).catch(() => null);
   if (gifBuffer) {
     try {
-      await ctx.sock.sendMessage(ctx.from, {
-        video: gifBuffer,
-        gifPlayback: true,
-        caption: text,
-        mentions,
-        mimetype: "video/mp4",
-      });
+      await sendVideo(ctx.from, gifBuffer, text, mentions);
       return;
     } catch (err) {
       logger.warn({ err, cmd: ctx.command }, "Failed to send interaction GIF, falling back to text");
     }
   }
-  await ctx.sock.sendMessage(ctx.from, { text, mentions });
+  await sendText(ctx.from, text, mentions);
 }
 
 async function fetchInteractionGif(action: string): Promise<Buffer | null> {

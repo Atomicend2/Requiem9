@@ -1,11 +1,11 @@
 import type { WASocket } from "@whiskeysockets/baileys";
 import {
-  getAllCards, getActiveSpawn, getActiveSpawnByToken, claimSpawn, spawnCardInGroup, giveCard, getCard,
+  getAllCards, getActiveSpawn, getActiveSpawnByToken, claimSpawn, spawnCardInGroup, giveCard, getCard, getCardFullById,
   ensureUser, getUser, updateUser, getGroup, ensureGroup, getUserCards,
   getTodaySpawnCount, recordSpawnForGroup, getNextSpawnTime, setNextSpawnTime,
   getGroupActivity, getLastSpawnedCardId, getRecentSpawnedCardIds, recordRecentSpawnedCard, getCardOwnerCount, getCardOwnerCounts,
 } from "../db/queries.js";
-import { sendText, sendImage, animatedToMp4, withMediaSlot } from "../connection.js";
+import { sendText, sendImage, animatedToMp4, withMediaSlot, sendWithRetry } from "../connection.js";
 import { getTierEmoji, getWeightedRandomCard, formatNumber, VIDEO_TIERS, isGifBuffer } from "../utils.js";
 import { logger } from "../../lib/logger.js";
 import { getCardImageBuffer as resolveCardImageBuffer } from "../media-cache.js";
@@ -65,10 +65,21 @@ async function withSendTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 async function sendAnimatedCard(sockOrGroup: any, groupId: string, buf: Buffer, cardId: string | number | undefined, caption: string, card: any) {
   const mp4Buf = await ensureMp4(buf, cardId);
   if (mp4Buf) {
-    await withSendTimeout(
-      sockOrGroup.sendMessage(groupId, { video: mp4Buf, gifPlayback: true, mimetype: "video/mp4", caption }),
-      MEDIA_SEND_TIMEOUT_MS
-    );
+    // FIX (2026-07-21): previously called sockOrGroup.sendMessage directly
+    // with no retry protection (the same bug class fixed across every
+    // other command this session) and invisible to trace instrumentation.
+    // Deliberately NOT routed through the sendVideo()/getActiveSock()
+    // helper here: spawnCard (this function's caller) takes an EXPLICIT
+    // sock parameter specifically because it's also invoked from
+    // checkAutoSpawn, a background job with no per-message
+    // AsyncLocalStorage reply context — going through the ambient-context
+    // helper would risk silently routing to the wrong bot's socket in
+    // that path (the exact class of bug already found and fixed earlier
+    // this session in the global-fallback socket routing). Retry-wrap the
+    // explicit socket directly instead.
+    await withSendTimeout(sendWithRetry(() =>
+      sockOrGroup.sendMessage(groupId, { video: mp4Buf, gifPlayback: true, mimetype: "video/mp4", caption })
+    ), MEDIA_SEND_TIMEOUT_MS);
   } else {
     // Real transcode failure. We already have real card art in `buf` (just
     // not as playable video) — sending it as a static image is a much
@@ -173,6 +184,18 @@ export async function spawnCard(sock: WASocket, groupId: string, specific?: stri
   }
   if (!card) return;
 
+  // PERF/MEM (2026-07-21): the shared getAllCards() cache is deliberately
+  // lean (image_data/raw_data projected out — see queries.ts's comment on
+  // fetchAllCardsFresh for why: a 51k-document array with those fields
+  // included was directly implicated in prior OOM crashes on this box's
+  // ~250-260MB effective heap ceiling). This function used to read
+  // card.raw_data straight off that lean object below, which — depending
+  // on future cache-shape changes — could silently be undefined. Re-fetch
+  // this ONE selected card's full document instead, matching the same
+  // pattern getCardImageBuffer already uses: only ever hold one full card
+  // document in memory at a time, never all 51k.
+  const fullCard = (await getCardFullById(String(card.id))) || card;
+
   const maxIssues = getMaxIssues(card.tier);
   const ownerCount = await getCardOwnerCount(card.id);
   const issueNum = ownerCount + 1;
@@ -243,22 +266,30 @@ export async function spawnCard(sock: WASocket, groupId: string, specific?: stri
           if (!activeSock || !isSocketConnected()) {
             const buf = await getCardImageBuffer(card);
             await sendImage(groupId, buf, caption);
-          } else if (!card.image_data) {
-            let mediaUrl: string | null = card.media_url || null;
-            if (!mediaUrl && card.raw_data) {
+          } else if (!fullCard.image_data) {
+            let mediaUrl: string | null = fullCard.media_url || null;
+            if (!mediaUrl && fullCard.raw_data) {
               try {
-                const raw = typeof card.raw_data === "string" ? JSON.parse(card.raw_data) : card.raw_data;
+                const raw = typeof fullCard.raw_data === "string" ? JSON.parse(fullCard.raw_data) : fullCard.raw_data;
                 mediaUrl = raw?.media_url || null;
               } catch {}
             }
-            if (!mediaUrl && card.mazoku_id) {
-              mediaUrl = card.image_url || card.webp_url || `https://cdn7.mazoku.cc/cards/${card.mazoku_id}.webp`;
+            if (!mediaUrl && fullCard.mazoku_id) {
+              mediaUrl = fullCard.image_url || fullCard.webp_url || `https://cdn7.mazoku.cc/cards/${fullCard.mazoku_id}.webp`;
             }
-            if (!mediaUrl && card.shoob_id) {
-              const hasWebm = card.has_webm === 1 || card.has_webm === true;
+            if (!mediaUrl && fullCard.shoob_id) {
+              const hasWebm = fullCard.has_webm === 1 || fullCard.has_webm === true;
+              // FIX (2026-07-21): non-webm animated cards were still using
+              // ?size=400 — the same fixed-size STATIC-image endpoint used
+              // for static cards, which returns a resized still frame (or
+              // a mismatched format) instead of actual GIF binary. This is
+              // the same bug already fixed at the same pattern's other two
+              // occurrences in this codebase (media-cache.ts, mongo.ts's
+              // sync path) — this was the one remaining copy, following
+              // the existing, already-correct ?type=webm convention.
               mediaUrl = hasWebm
-                ? `https://api.shoob.gg/site/api/cardr/${card.shoob_id}?type=webm`
-                : `https://api.shoob.gg/site/api/cardr/${card.shoob_id}?size=400`;
+                ? `https://api.shoob.gg/site/api/cardr/${fullCard.shoob_id}?type=webm`
+                : `https://api.shoob.gg/site/api/cardr/${fullCard.shoob_id}?type=gif`;
             }
             // Fetch the animated source (falling back to getCardImageBuffer's
             // own CDN logic on network failure), then always route through
@@ -281,8 +312,8 @@ export async function spawnCard(sock: WASocket, groupId: string, specific?: stri
             }
             await sendAnimatedCard(activeSock, groupId, buf, card.id, caption, card);
           } else {
-            const buf = await getCardImageBuffer(card);
-            await sendAnimatedCard(activeSock, groupId, buf, card.id, caption, card);
+            const buf = await getCardImageBuffer(fullCard);
+            await sendAnimatedCard(activeSock, groupId, buf, card.id, caption, fullCard);
           }
         } else {
           const buf = await getCardImageBuffer(card);

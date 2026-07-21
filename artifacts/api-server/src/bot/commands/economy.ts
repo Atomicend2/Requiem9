@@ -1,5 +1,5 @@
 import type { CommandContext } from "./index.js";
-import { BOT_OWNER_LID, sendText, sendTextWithPreview } from "../connection.js";
+import { BOT_OWNER_LID, sendText, sendTextWithPreview, sendImage, sendVideo } from "../connection.js";
 import {
   getUser, ensureUser, updateUser, incrementUserFields, decrementUserFieldFloored, getInventory, addToInventory, removeFromInventory,
   getShop, getShopItem, getRichList, ensureRpg, getUserRank, getUserGuild, isBanned, getStaff, isMod,
@@ -352,7 +352,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
       text += `║ ${prefix} ${name}\n║     └─ 💰 Bᴀʟ: $${formatNumber(u.total)}\n║\n`;
     });
     text += "╚══════════════════╝";
-    await ctx.sock.sendMessage(from, { text, mentions: list.map((u) => u.id) });
+    await sendText(from, text, list.map((u) => u.id));
     return;
   }
 
@@ -368,7 +368,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
       text += `║ ${prefix} ${name}\n║     └─ 💰 Bᴀʟ: $${formatNumber(u.total)}\n║\n`;
     });
     text += "╚══════════════════╝";
-    await ctx.sock.sendMessage(from, { text, mentions: list.map((u) => u.id) });
+    await sendText(from, text, list.map((u) => u.id));
     return;
   }
 
@@ -458,6 +458,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
     const profileImage = animatedProfile
       ? null
       : await buildProfileImage(ctx, targetId, target, rpg, rank, role).catch(async () => null);
+    mark("profile:buildImage");
 
     // ꕥ (Vai script, U+A515) and ℙℝ𝕆𝔽𝕀𝕃𝔼 (mathematical double-struck letters)
     // don't render correctly on many Android/iOS WhatsApp versions — they appear
@@ -478,12 +479,13 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
       `☁️ Rise Beyond the Clouds ☁️`;
 
     if (animatedProfile) {
-      await ctx.sock.sendMessage(from, { video: animatedProfile, gifPlayback: true, mimetype: "video/mp4", caption: text, mentions: [targetId] });
+      await sendVideo(from, animatedProfile, text, [targetId]);
     } else if (profileImage) {
-      await ctx.sock.sendMessage(from, { image: profileImage, caption: text, mentions: [targetId] });
+      await sendImage(from, profileImage, text, [targetId]);
     } else {
-      await ctx.sock.sendMessage(from, { text, mentions: [targetId] });
+      await sendText(from, text, [targetId]);
     }
+    mark("profile:send");
     return;
   }
 
@@ -750,7 +752,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
       text += `║ ${prefix} ${name}\n║     └─ ⭐ Lᴠ ${level} · ${formatNumber(xp)} / ${formatNumber(xpNeededForLevel(level))} XP\n║        Tᴏᴛᴀʟ XP: ${formatNumber(totalXp)}\n║\n`;
     });
     text += "╚══════════════════╝";
-    await ctx.sock.sendMessage(from, { text, mentions: list.map((u) => u.id) });
+    await sendText(from, text, list.map((u) => u.id));
     return;
   }
 
@@ -901,7 +903,7 @@ export async function handleEconomy(ctx: CommandContext): Promise<void> {
       "I'd roast you harder, but my mom says I can't burn trash.",
     ];
     const target = mentioned ? `${mentionTag(mentioned)}` : "you";
-    await ctx.sock.sendMessage(from, { text: `🔥 ${target}: ${roasts[Math.floor(Math.random() * roasts.length)]}`, mentions: mentioned ? [mentioned] : [] });
+    await sendText(from, `🔥 ${target}: ${roasts[Math.floor(Math.random() * roasts.length)]}`, mentioned ? [mentioned] : []);
     return;
   }
 

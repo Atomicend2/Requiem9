@@ -1,5 +1,5 @@
 import type { CommandContext } from "./index.js";
-import { sendText } from "../connection.js";
+import { sendText, sendImage } from "../connection.js";
 import { ensureUser, extractNumberFromJid, getMentionName, getUser, updateUser } from "../db/queries.js";
 import { col } from "../db/mongo.js";
 import { mentionTag } from "../utils.js";
@@ -41,7 +41,7 @@ export async function handleLottery(ctx: CommandContext): Promise<void> {
     if (existing) {
       await sendText(from, "🎰 *Already Entered!*\n\nYou are already in this drawing. Wait for the results!");
       const image = await buildLotteryImageSafe(String(lottery!._id));
-      if (image) await ctx.sock.sendMessage(from, { image, caption: "🎲 *Lottery Pool Status — REQUIEM ORDER 反逆*" });
+      if (image) await sendImage(from, image, "🎲 *Lottery Pool Status — REQUIEM ORDER 反逆*");
       return;
     }
 
@@ -59,7 +59,7 @@ export async function handleLottery(ctx: CommandContext): Promise<void> {
     );
 
     const image = await buildLotteryImageSafe(String(lottery!._id));
-    if (image) await ctx.sock.sendMessage(from, { image, caption: "🎲 *Lottery Pool Status — REQUIEM ORDER 反逆*" });
+    if (image) await sendImage(from, image, "🎲 *Lottery Pool Status — REQUIEM ORDER 反逆*");
 
     if (entryCount >= MAX_PARTICIPANTS) {
       await performLotteryDraw(ctx, String(lottery!._id), from);
@@ -205,7 +205,7 @@ async function performLotteryDraw(ctx: CommandContext, lotteryId: string, from: 
     `💎 *Total pool:* ${totalPool.toLocaleString()}\n\n` +
     `_A new lottery pool begins now. Buy tickets from *.shop*!_`;
 
-  await ctx.sock.sendMessage(from, { text: announcement, mentions: winnerMentions });
+  await sendText(from, announcement, winnerMentions);
 }
 
 async function buildLotteryImageSafe(lotteryId: string): Promise<Buffer | null> {

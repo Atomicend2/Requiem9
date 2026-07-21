@@ -75,7 +75,7 @@ export async function handleSummer(ctx: CommandContext): Promise<void> {
       top.forEach((u, i) => {
         text += `${i + 1}. @${u.user_id.split("@")[0]} — ${u.tokens} tokens\n`;
       });
-      await ctx.sock.sendMessage(from, { text, mentions: top.map((u) => u.user_id) });
+      await sendText(from, text, top.map((u) => u.user_id));
       return;
     }
 
